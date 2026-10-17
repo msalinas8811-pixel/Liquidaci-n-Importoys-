@@ -108,7 +108,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 <h2>Liquidación de utilidades 50/50</h2><p class="sub">Calcula una distribución administrativa de las utilidades entre Importoys e Importshop para el mes elegido.</p>
 <div class="monthbar"><div class="field"><label>Mes de liquidación</label><input type="month" id="settleMonth"></div><button class="btn" id="calcSettlement">Calcular liquidación</button></div>
 <div id="settlementResult"></div>
-<div class="notice">Criterio de esta versión: ventas netas después de descuento, menos comisiones y gastos registrados; se excluye de ingreso repartible el IVA calculado de CF/CCF. Como el inventario no incluye costo de compra, el resultado es una utilidad administrativa preliminar, no utilidad contable final. Los movimientos entre responsables cambian dónde está el dinero, pero no crean ingresos ni gastos.</div>
+<div class="notice">Criterio de esta versión: ventas ya registradas con el descuento aplicado una sola vez, menos comisiones y gastos registrados; se excluye de ingreso repartible el IVA calculado de CF/CCF. Como el inventario no incluye costo de compra, el resultado es una utilidad administrativa preliminar, no utilidad contable final. Los movimientos entre responsables cambian dónde está el dinero, pero no crean ingresos ni gastos.</div>
 </section>
 
 <section id="reportes" class="page">
@@ -175,17 +175,46 @@ $('#recentSales').innerHTML=table(['Fecha','Cliente','Producto','Empresa','Total
 function renderVat(){let m=$('#vatMonth').value||monthNow(),v=vatInfo(m);$('#vatCarry').value=v.carry;$('#vatGenerated').value=v.generated.toFixed(2);$('#vatPayable').value=v.pay.toFixed(2);$('#vatNextCarry').value=v.next.toFixed(2);$('#vatDetails').innerHTML=`<p>Ventas CF/CCF incluidas: <b>${v.ss.filter(s=>['CF','CCF'].includes(s.document)).length}</b> · Remanente usado: <b>${money(v.carry)}</b> · IVA neto calculado: <b>${money(v.pay)}</b></p>`}
 $('#vatMonth').addEventListener('change',renderVat);$('#vatCarry').addEventListener('input',()=>{let m=$('#vatMonth').value||monthNow(),v=vatInfo(m),c=num($('#vatCarry').value);$('#vatGenerated').value=v.generated.toFixed(2);$('#vatPayable').value=Math.max(0,v.generated-c).toFixed(2);$('#vatNextCarry').value=Math.max(0,c-v.generated).toFixed(2)});
 $('#saveVat').addEventListener('click',()=>{let m=$('#vatMonth').value||monthNow();db.vatCarry[m]=num($('#vatCarry').value);syncVatExpense(m);renderAll();flash('#expenseMsg','Remanente guardado y gasto de IVA de Importoys actualizado.');});
-function settlement(m){let ss=monthSales(m),xs=monthExpenses(m),vat=vatInfo(m).pay;
-let rev=ss.reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0)),0),comm=ss.reduce((a,s)=>a+s.commission,0);
-let exI=xs.filter(x=>x.company==='Importoys').reduce((a,x)=>a+x.amount,0),exS=xs.filter(x=>x.company==='Importshop').reduce((a,x)=>a+x.amount,0);
-let profit=rev-comm-exI-exS,share=profit/2;
-let recI=ss.filter(s=>s.owner==='Importoys').reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0))-s.commission,0),recS=ss.filter(s=>s.owner==='Importshop').reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0))-s.commission,0);
-let balanceI=recI-exI,balanceS=recS-exS;
-return {rev,comm,exI,exS,profit,share,recI,recS,balanceI,balanceS,vat}}
-function renderSettlement(){let m=$('#settleMonth').value||monthNow(),s=settlement(m),dueI=s.share-s.balanceI,dueS=s.share-s.balanceS;let payer=dueI<dueS?'Importoys':'Importshop',amount=Math.abs(dueI-dueS);
-$('#settlementResult').innerHTML=`<div class="grid"><div class="card kpi"><div class="label">Ingreso repartible preliminar</div><div class="value">${money(s.rev)}</div></div><div class="card kpi"><div class="label">Comisiones descontadas</div><div class="value">${money(s.comm)}</div></div><div class="card kpi"><div class="label">Utilidad preliminar</div><div class="value">${money(s.profit)}</div></div><div class="card kpi"><div class="label">50% para cada empresa</div><div class="value">${money(s.share)}</div></div></div>
-<div class="panel"><h3>Detalle de liquidación · ${esc(m)}</h3>${table(['Concepto','Importoys','Importshop','Total'],[tr(['Ingresos asignados (sin IVA calculado)',money(s.recI+s.exI),money(s.recS+s.exS),money(s.rev+s.comm)]),tr(['Gastos registrados',money(s.exI),money(s.exS),money(s.exI+s.exS)]),tr(['Saldo administrativo antes del ajuste',money(s.balanceI),money(s.balanceS),money(s.balanceI+s.balanceS)]),tr(['Utilidad objetivo 50/50',money(s.share),money(s.share),money(s.share*2)]),tr(['Diferencia frente al objetivo',money(s.balanceI-s.share),money(s.balanceS-s.share),'—'])])}</div>
-<div class="panel"><h3>Resultado de compensación</h3><p>${Math.abs(s.balanceI-s.share)<0.01&&Math.abs(s.balanceS-s.share)<0.01?'Las dos empresas están equilibradas según los registros actuales.':`Para igualar los saldos registrados, ${esc(payer)} debe transferir ${money(amount)} a ${payer==='Importoys'?'Importshop':'Importoys'}.`}</p><p class="sub">El IVA neto estimado del mes es ${money(s.vat)} y se registra como gasto de Importoys al guardar el cálculo en Gastos e IVA.</p></div>`}
+function settlement(m){
+ const ss=monthSales(m),xs=monthExpenses(m),vat=vatInfo(m).pay;
+ // El saldo depende de quién tiene el dinero actualmente.
+ const collectedI=ss.filter(s=>s.holder==='Importoys').reduce((a,s)=>a+Math.max(0,s.gross),0);
+ const collectedS=ss.filter(s=>s.holder==='Importshop').reduce((a,s)=>a+Math.max(0,s.gross),0);
+ const heldWarehouse=ss.filter(s=>s.holder==='Bodega').reduce((a,s)=>a+Math.max(0,s.gross),0);
+ const commI=ss.filter(s=>s.owner==='Importoys').reduce((a,s)=>a+s.commission,0);
+ const commS=ss.filter(s=>s.owner==='Importshop').reduce((a,s)=>a+s.commission,0);
+ const exI=xs.filter(x=>x.company==='Importoys').reduce((a,x)=>a+x.amount,0);
+ const exS=xs.filter(x=>x.company==='Importshop').reduce((a,x)=>a+x.amount,0);
+ const balanceI=collectedI-exI-commI, balanceS=collectedS-exS-commS;
+ const distributable=balanceI+balanceS, target=distributable/2, diff=balanceI-target;
+ const payer=Math.abs(diff)<0.005?null:(diff>0?'Importoys':'Importshop');
+ const receiver=payer?(payer==='Importoys'?'Importshop':'Importoys'):null;
+ // La compensación es únicamente el excedente sobre el objetivo 50/50, nunca el saldo completo.
+ const amount=Math.round(Math.abs(balanceI-target)*100)/100;
+ return {collectedI,collectedS,heldWarehouse,commI,commS,exI,exS,balanceI,balanceS,distributable,target,payer,receiver,amount,vat};
+}
+function renderSettlement(){
+ const m=$('#settleMonth').value||monthNow(),s=settlement(m);
+ $('#settlementResult').innerHTML=`
+ <div class="grid">
+  <div class="card kpi"><div class="label">Dinero en poder de Importoys</div><div class="value">${money(s.collectedI)}</div><div class="hint">Antes de descontar gastos y comisiones</div></div>
+  <div class="card kpi"><div class="label">Dinero en poder de Importshop</div><div class="value">${money(s.collectedS)}</div><div class="hint">Antes de descontar gastos y comisiones</div></div>
+  <div class="card kpi"><div class="label">Dinero aún en Bodega</div><div class="value">${money(s.heldWarehouse)}</div><div class="hint">Separado hasta transferirlo a una empresa</div></div>
+  <div class="card kpi"><div class="label">Saldo conjunto repartible</div><div class="value">${money(s.distributable)}</div><div class="hint">Después de gastos y comisiones</div></div>
+ </div>
+ <div class="panel"><h3>Liquidación del mes · ${esc(m)}</h3>${table(['Concepto','Importoys','Importshop','Total'],[
+ tr(['Dinero asignado según quién lo tiene',money(s.collectedI),money(s.collectedS),money(s.collectedI+s.collectedS)]),
+ tr(['Menos gastos propios','-'+money(s.exI),'-'+money(s.exS),'-'+money(s.exI+s.exS)]),
+ tr(['Menos comisiones de ventas asignadas','-'+money(s.commI),'-'+money(s.commS),'-'+money(s.commI+s.commS)]),
+ tr(['Saldo neto después de gastos y comisiones',money(s.balanceI),money(s.balanceS),money(s.distributable)]),
+ tr(['Objetivo de reparto 50/50',money(s.target),money(s.target),money(s.distributable)]),
+ tr(['Diferencia frente al objetivo',money(s.balanceI-s.target),money(s.balanceS-s.target),'—'])
+ ])}</div>
+ <div class="panel"><h3>Resultado de compensación · cálculo corregido</h3>
+ ${s.payer?`<p><b>${esc(s.payer)}</b> debe entregar <b>${money(s.amount)}</b> a <b>${esc(s.receiver)}</b> para que ambas empresas queden con ${money(s.target)} cada una.</p>`:`<p>Las dos empresas están equilibradas. No hay pago pendiente entre ellas.</p>`}
+ <p class="sub">La transferencia se calcula solo por la diferencia entre el saldo neto de cada empresa y su objetivo 50/50; no se transfiere automáticamente todo el saldo de una empresa.</p><p class="sub">IVA neto estimado del mes: ${money(s.vat)}. El gasto automático de IVA se asigna a Importoys cuando se guarda en Gastos e IVA.</p></div>
+ <div class="notice">Regla aplicada: dinero que tiene cada empresa (el total de venta ya tiene el descuento aplicado, no se vuelve a restar) − sus gastos − comisiones de sus ventas asignadas. Se suman los dos saldos y se divide entre dos. La empresa cuyo saldo supera el objetivo paga la diferencia a la otra. El dinero que siga en Bodega se muestra aparte hasta que registres su transferencia. Este cálculo no incluye costo de compra de los productos.</div>`;
+}
 $('#calcSettlement').addEventListener('click',renderSettlement);
 function renderReports(){let m=$('#reportMonth').value||monthNow(),ss=monthSales(m),xs=monthExpenses(m),companies=['Importoys','Importshop'],holders=['Importoys','Importshop','Bodega'];$('#reportSummary').innerHTML='<div class="grid">'+companies.map(c=>`<div class="card kpi"><div class="label">Ventas asignadas a ${c}</div><div class="value">${money(ss.filter(s=>s.owner===c).reduce((a,s)=>a+s.gross,0))}</div></div>`).join('')+`<div class="card kpi"><div class="label">Total de ventas</div><div class="value">${money(ss.reduce((a,s)=>a+s.gross,0))}</div></div><div class="card kpi"><div class="label">Total de gastos</div><div class="value">${money(xs.reduce((a,x)=>a+x.amount,0))}</div></div></div>`+table(['Quién tiene el dinero','Ventas cuyo dinero está asignado aquí'],holders.map(h=>tr([h,money(ss.filter(s=>s.holder===h).reduce((a,s)=>a+s.gross,0))])));
 $('#reportSales').innerHTML=table(['Fecha','Cliente','Producto','Documento','Empresa','Ubicación','Tiene dinero','Total','IVA incluido'],ss.map(s=>tr([esc(s.date),esc(s.client),esc(s.product),esc(s.document),esc(s.owner),esc(s.location),esc(s.holder),money(s.gross),money(s.vat)])));
