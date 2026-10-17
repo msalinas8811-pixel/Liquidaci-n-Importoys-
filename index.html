@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0754a6">
+<title>Control de Ventas y Liquidación | Importoys</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--blue:#0754a6;--blue2:#0879c9;--red:#e9272e;--yellow:#ffd62e;--ink:#172033;--muted:#667085;--bg:#f3f6fb;--line:#dfe6f0;--white:#fff;--green:#16834a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(110deg,#064b99,#0879c9);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 3px 14px #12345a20}
+.logo{width:84px;height:70px;object-fit:contain;background:#fff;border-radius:12px;padding:4px}.brand h1{font-size:20px;margin:0}.brand p{margin:3px 0 0;opacity:.9;font-size:13px}
+nav{display:flex;gap:7px;overflow-x:auto;padding:10px 14px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{border:0;border-radius:9px;background:#edf3fb;color:#17436f;padding:10px 14px;white-space:nowrap;font-weight:700;cursor:pointer}
+nav button.active{background:var(--blue);color:#fff;box-shadow:0 3px 8px #0754a633}
+main{max-width:1280px;margin:22px auto;padding:0 16px 45px}.page{display:none}.page.active{display:block}
+h2{font-size:23px;margin:0 0 4px} .sub{color:var(--muted);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:16px 0}
+.card,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 4px 14px #183b6508}
+.kpi .label{color:var(--muted);font-size:13px}.kpi .value{font-size:25px;font-weight:800;margin-top:5px}.kpi .hint{font-size:12px;color:var(--muted)}
+.panel{margin:14px 0}.panel h3{margin:0 0 14px;font-size:17px}
+.formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:13px;font-weight:700;color:#344054}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:var(--ink);font:inherit;min-height:41px}
+input:focus,select:focus,textarea:focus{outline:2px solid #9dc8f8;border-color:var(--blue2)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.btn{border:0;border-radius:9px;padding:10px 15px;font-weight:750;cursor:pointer;background:var(--blue);color:#fff}.btn.red{background:var(--red)}.btn.light{background:#eaf1fb;color:#17436f}.btn.yellow{background:var(--yellow);color:#352b00}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:760px;background:#fff}th,td{text-align:left;padding:10px 11px;border-bottom:1px solid #edf0f5;font-size:13px}th{background:#edf4fc;color:#24496e;position:sticky;top:0}tr:last-child td{border-bottom:0}.right{text-align:right}.pill{display:inline-block;border-radius:20px;background:#eaf3ff;color:#0754a6;padding:3px 8px;font-size:12px;font-weight:700}.empty{padding:20px;text-align:center;color:var(--muted)}
+.notice{padding:12px 14px;background:#fff8d9;border:1px solid #f5df83;border-radius:10px;color:#594800;margin:12px 0;font-size:13px}
+.success{padding:10px 12px;background:#e8f7ee;color:#17683b;border-radius:9px;margin:10px 0;display:none}
+.monthbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.monthbar .field{min-width:160px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}header{padding:12px}.logo{width:64px;height:58px}}
+@media(max-width:540px){.grid,.formgrid{grid-template-columns:1fr}.brand h1{font-size:16px}main{padding:0 10px 30px}.card,.panel{padding:13px}.kpi .value{font-size:22px}}
+</style>
+</head>
+<body>
+<header>
+<img class="logo" src="assets/logo-importoys.png" alt="Logo Importoys" onerror="this.style.display='none'">
+<div class="brand"><h1>Control de Ventas y Liquidación</h1><p>IMPORTOYS · IMPORTSHOP · BODEGA</p></div>
+</header>
+<nav id="nav">
+<button class="active" data-page="inicio">Inicio</button><button data-page="ventas">Ventas</button><button data-page="inventario">Inventario</button><button data-page="gastos">Gastos e IVA</button><button data-page="movimientos">Movimientos de dinero</button><button data-page="liquidacion">Liquidación 50/50</button><button data-page="reportes">Reportes</button><button data-page="respaldo">Respaldo</button>
+</nav>
+<main>
+<section id="inicio" class="page active">
+<h2>Resumen mensual</h2><p class="sub">Indicadores del mes seleccionado. Los datos se guardan en este navegador.</p>
+<div class="monthbar"><div class="field"><label>Mes de consulta</label><input type="month" id="dashMonth"></div><button class="btn" id="refreshDash">Actualizar resumen</button></div>
+<div class="grid" id="kpis"></div>
+<div class="panel"><h3>Ventas por ubicación de ingreso</h3><div id="locationSummary"></div></div>
+<div class="panel"><h3>Ventas recientes</h3><div id="recentSales"></div></div>
+<div class="notice">Importante: esta versión es un prototipo local. Los datos quedan guardados en el navegador de este dispositivo; usa Respaldo para exportarlos. No hay sincronización automática entre teléfonos.</div>
+</section>
+
+<section id="ventas" class="page">
+<h2>Registro de ventas</h2><p class="sub">El precio se toma del inventario; el importe de IVA incluido se calcula solo para CF y CCF.</p>
+<div class="panel"><h3>Nueva venta</h3><div id="saleMsg" class="success"></div>
+<form id="saleForm"><div class="formgrid">
+<div class="field"><label>Nombre del cliente *</label><input name="client" required></div>
+<div class="field"><label>Fecha de venta *</label><input name="date" type="date" required></div>
+<div class="field"><label>Producto / modelo *</label><select name="product" id="saleProduct" required></select></div>
+<div class="field"><label>Cantidad *</label><input name="qty" type="number" min="1" step="1" value="1" required></div>
+<div class="field"><label>Precio unitario ($)</label><input name="price" id="salePrice" type="number" min="0" step=".01" required></div>
+<div class="field"><label>Descuento total ($)</label><input name="discount" type="number" min="0" step=".01" value="0"></div>
+<div class="field"><label>Comisión ($)</label><input name="commission" type="number" min="0" step=".01" value="0"></div>
+<div class="field"><label>Vendedor</label><input name="seller"></div>
+<div class="field"><label>Forma de pago</label><select name="payment"><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Crédito</option><option>Otros</option></select></div>
+<div class="field"><label>Empresa a la que se asigna la venta *</label><select name="owner"><option>Importoys</option><option>Importshop</option></select></div>
+<div class="field"><label>Entrado en *</label><select name="location"><option>Tienda</option><option>Express de El Salvador</option><option>Aeromall de El Salvador</option></select></div>
+<div class="field"><label>Número de guía</label><input name="guide"></div>
+<div class="field"><label>Quién tiene el dinero *</label><select name="holder"><option>Importoys</option><option>Importshop</option><option>Bodega</option></select></div>
+<div class="field"><label>Documento entregado *</label><select name="document"><option value="Nada">Nada</option><option value="CF">CF</option><option value="CCF">CCF</option></select></div>
+<div class="field"><label>Total de venta ($)</label><input id="saleTotal" readonly></div>
+<div class="field"><label>IVA incluido estimado ($)</label><input id="saleVat" readonly></div>
+<div class="field"><label>Disponible después de descuento y comisión ($)</label><input id="saleNet" readonly></div>
+</div><div class="actions"><button class="btn" type="submit">Guardar venta</button><button class="btn light" type="reset">Limpiar formulario</button></div></form></div>
+<div class="panel"><h3>Ventas registradas</h3><div class="tablewrap" id="salesTable"></div></div>
+</section>
+
+<section id="inventario" class="page">
+<h2>Inventario</h2><p class="sub">Registra productos y mantén las existencias actualizadas con las ventas.</p>
+<div class="panel"><h3>Agregar producto</h3><div id="invMsg" class="success"></div><form id="invForm"><div class="formgrid">
+<div class="field"><label>Nombre del producto *</label><input name="name" required></div><div class="field"><label>Modelo *</label><input name="model" required></div><div class="field"><label>Precio de venta ($) *</label><input name="price" type="number" min="0" step=".01" required></div><div class="field"><label>Cantidad inicial *</label><input name="qty" type="number" min="0" step="1" required></div>
+</div><div class="actions"><button class="btn">Guardar producto</button></div></form></div>
+<div class="panel"><h3>Productos disponibles</h3><div class="tablewrap" id="inventoryTable"></div></div>
+</section>
+
+<section id="gastos" class="page">
+<h2>Gastos e IVA</h2><p class="sub">Gastos por empresa y cálculo mensual de IVA generado menos remanente.</p>
+<div class="panel"><h3>Registrar gasto</h3><div id="expenseMsg" class="success"></div><form id="expenseForm"><div class="formgrid">
+<div class="field"><label>Fecha *</label><input name="date" type="date" required></div><div class="field"><label>Descripción del gasto *</label><input name="description" required></div><div class="field"><label>Quién lo gastó *</label><select name="company"><option>Importoys</option><option>Importshop</option></select></div><div class="field"><label>Importe ($) *</label><input name="amount" type="number" min="0" step=".01" required></div>
+</div><div class="actions"><button class="btn">Guardar gasto</button></div></form></div>
+<div class="panel"><h3>Control mensual de IVA</h3><div class="formgrid">
+<div class="field"><label>Mes</label><input type="month" id="vatMonth"></div><div class="field"><label>Remanente del mes anterior ($)</label><input type="number" id="vatCarry" min="0" step=".01" value="0"></div><div class="field"><label>IVA generado por CF y CCF ($)</label><input id="vatGenerated" readonly></div><div class="field"><label>IVA neto a pagar ($)</label><input id="vatPayable" readonly></div><div class="field"><label>Remanente que pasa al siguiente mes ($)</label><input id="vatNextCarry" readonly></div>
+</div><div class="actions"><button class="btn" id="saveVat">Guardar remanente y actualizar gasto de Importoys</button></div><div id="vatDetails"></div><div class="notice">Como el precio incluye IVA, el cálculo estimado es total gravado × 13 / 113. Se toma el importe de la venta después del descuento. La aplicación resta el remanente, pero no incluye todavía créditos fiscales de compras ni otros ajustes tributarios.</div></div>
+<div class="panel"><h3>Gastos registrados</h3><div class="tablewrap" id="expensesTable"></div></div>
+</section>
+
+<section id="movimientos" class="page">
+<h2>Movimientos de dinero</h2><p class="sub">Registra el traslado del dinero sin duplicar ventas ni ingresos.</p>
+<div class="panel"><h3>Transferir dinero entre responsables</h3><div id="transferMsg" class="success"></div><form id="transferForm"><div class="formgrid">
+<div class="field"><label>Fecha *</label><input name="date" type="date" required></div><div class="field"><label>Sale de *</label><select name="from"><option>Bodega</option><option>Importoys</option><option>Importshop</option></select></div><div class="field"><label>Se entrega a *</label><select name="to"><option>Importoys</option><option>Importshop</option><option>Bodega</option></select></div><div class="field"><label>Importe ($) *</label><input name="amount" type="number" min=".01" step=".01" required></div><div class="field"><label>Referencia / nota</label><input name="note"></div>
+</div><div class="actions"><button class="btn">Registrar movimiento</button></div></form></div>
+<div class="panel"><h3>Historial de movimientos</h3><div class="tablewrap" id="transfersTable"></div></div>
+</section>
+
+<section id="liquidacion" class="page">
+<h2>Liquidación de utilidades 50/50</h2><p class="sub">Calcula una distribución administrativa de las utilidades entre Importoys e Importshop para el mes elegido.</p>
+<div class="monthbar"><div class="field"><label>Mes de liquidación</label><input type="month" id="settleMonth"></div><button class="btn" id="calcSettlement">Calcular liquidación</button></div>
+<div id="settlementResult"></div>
+<div class="notice">Criterio de esta versión: ventas netas después de descuento, menos comisiones y gastos registrados; se excluye de ingreso repartible el IVA calculado de CF/CCF. Como el inventario no incluye costo de compra, el resultado es una utilidad administrativa preliminar, no utilidad contable final. Los movimientos entre responsables cambian dónde está el dinero, pero no crean ingresos ni gastos.</div>
+</section>
+
+<section id="reportes" class="page">
+<h2>Reportes mensuales</h2><p class="sub">Consulta ventas por empresa, por ubicación y por responsable del dinero.</p>
+<div class="monthbar"><div class="field"><label>Mes del reporte</label><input type="month" id="reportMonth"></div><button class="btn" id="refreshReports">Generar reporte</button></div>
+<div id="reportSummary"></div><div class="panel"><h3>Detalle de ventas del mes</h3><div class="tablewrap" id="reportSales"></div></div>
+<div class="panel"><h3>Gastos por empresa</h3><div id="reportExpenses"></div></div>
+</section>
+
+<section id="respaldo" class="page">
+<h2>Respaldo y restauración</h2><p class="sub">Exporta todos los datos a un archivo JSON para guardarlo o trasladarlo a otro dispositivo.</p>
+<div class="panel"><h3>Copias de seguridad</h3><p>El archivo contiene inventario, ventas, gastos, movimientos y remanentes de IVA.</p><div class="actions"><button class="btn" id="exportData">Exportar respaldo</button><label class="btn light" for="importFile">Restaurar desde archivo</label><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div><div id="backupMsg"></div></div>
+<div class="panel"><h3>Datos de prueba</h3><p>Si deseas comenzar de cero, puedes borrar los datos guardados en este navegador. Esta acción no se puede deshacer sin un respaldo.</p><button class="btn red" id="clearData">Borrar todos los datos locales</button></div>
+</section>
+</main>
+<footer>Importoys El Salvador · Control administrativo · Verifica los datos antes de usar reportes fiscales.</footer>
+<script>
+const KEY='importoys_control_v1';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const today=()=>new Date().toLocaleDateString('en-CA');
+const monthNow=()=>today().slice(0,7);
+const money=n=>'$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>Math.max(0,Number(v)||0);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let db=load();
+function load(){try{return Object.assign({inventory:[],sales:[],expenses:[],transfers:[],vatCarry:{}},JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return {inventory:[],sales:[],expenses:[],transfers:[],vatCarry:{}}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function flash(sel,msg){let el=$(sel);el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',3500)}
+function table(headers,rows){if(!rows.length)return '<div class="empty">No hay registros para mostrar.</div>';return '<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>'}
+function tr(cells){return '<tr>'+cells.map(x=>'<td>'+x+'</td>').join('')+'</tr>'}
+function setDefaults(){['saleForm','expenseForm','transferForm'].forEach(id=>{let f=$('#'+id);if(f&&f.elements.date)f.elements.date.value=today()});['dashMonth','vatMonth','settleMonth','reportMonth'].forEach(id=>{if($('#'+id))$('#'+id).value=monthNow()})}
+function navigate(page){$$('.page').forEach(p=>p.classList.toggle('active',p.id===page));$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));renderAll();window.scrollTo({top:0,behavior:'smooth'})}
+$('#nav').addEventListener('click',e=>{let b=e.target.closest('button[data-page]');if(b)navigate(b.dataset.page)});
+function updateProductOptions(){let s=$('#saleProduct'),old=s.value;s.innerHTML='<option value="">Selecciona producto</option>'+db.inventory.map(p=>`<option value="${p.id}">${esc(p.name)} · ${esc(p.model)} (disp. ${p.qty})</option>`).join('');if(db.inventory.some(p=>p.id===old))s.value=old;updateSaleCalc()}
+$('#saleProduct').addEventListener('change',()=>{let p=db.inventory.find(p=>p.id===$('#saleProduct').value);$('#saleForm').elements.price.value=p?p.price:'';updateSaleCalc()});
+['qty','price','discount','commission','document'].forEach(n=>$('#saleForm').elements[n].addEventListener('input',updateSaleCalc));
+function saleCalc(){let f=$('#saleForm').elements,p=db.inventory.find(p=>p.id===f.product.value),qty=num(f.qty.value),price=num(f.price.value),discount=num(f.discount.value),commission=num(f.commission.value),gross=Math.max(0,qty*price-discount),vat=['CF','CCF'].includes(f.document.value)?gross*13/113:0;return {gross,vat,net:Math.max(0,gross-commission),p,qty,discount,commission}}
+function updateSaleCalc(){let c=saleCalc();$('#saleTotal').value=c.gross.toFixed(2);$('#saleVat').value=c.vat.toFixed(2);$('#saleNet').value=c.net.toFixed(2)}
+$('#saleForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target.elements,c=saleCalc();if(!c.p){alert('Selecciona un producto del inventario.');return}if(c.qty<1||c.qty>c.p.qty){alert('La cantidad supera las existencias disponibles.');return}if(c.discount>c.qty*num(f.price.value)){alert('El descuento no puede superar el importe de la venta.');return}
+let s={id:id(),client:f.client.value.trim(),date:f.date.value,productId:c.p.id,product:c.p.name,model:c.p.model,qty:c.qty,price:num(f.price.value),gross:c.gross,discount:c.discount,commission:c.commission,seller:f.seller.value.trim(),payment:f.payment.value,owner:f.owner.value,location:f.location.value,guide:f.guide.value.trim(),holder:f.holder.value,document:f.document.value,vat:c.vat,net:c.net};
+db.sales.push(s);c.p.qty-=c.qty;save();e.target.reset();f.date.value=today();f.qty.value=1;f.discount.value=0;f.commission.value=0;updateProductOptions();renderAll();flash('#saleMsg','Venta guardada correctamente.');});
+$('#invForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target.elements;db.inventory.push({id:id(),name:f.name.value.trim(),model:f.model.value.trim(),price:num(f.price.value),qty:Math.floor(num(f.qty.value))});save();e.target.reset();renderAll();flash('#invMsg','Producto agregado al inventario.')});
+$('#expenseForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target.elements;db.expenses.push({id:id(),date:f.date.value,description:f.description.value.trim(),company:f.company.value,amount:num(f.amount.value),type:'manual'});save();e.target.reset();f.date.value=today();renderAll();flash('#expenseMsg','Gasto registrado.')});
+$('#transferForm').addEventListener('submit',e=>{e.preventDefault();let f=e.target.elements;if(f.from.value===f.to.value){alert('El origen y destino deben ser distintos.');return}db.transfers.push({id:id(),date:f.date.value,from:f.from.value,to:f.to.value,amount:num(f.amount.value),note:f.note.value.trim()});save();e.target.reset();f.date.value=today();renderAll();flash('#transferMsg','Movimiento registrado sin duplicar la venta.')});
+function monthSales(m){return db.sales.filter(s=>s.date.startsWith(m))}
+function monthExpenses(m){return db.expenses.filter(x=>x.date.startsWith(m))}
+function vatInfo(m){let ss=monthSales(m),generated=ss.reduce((a,s)=>a+(s.vat||0),0),carry=num(db.vatCarry[m]||0),pay=Math.max(0,generated-carry),next=Math.max(0,carry-generated);return {generated,carry,pay,next,ss}}
+function syncVatExpense(m){let v=vatInfo(m),desc='IVA neto a pagar - '+m;db.expenses=db.expenses.filter(x=>!(x.type==='iva'&&x.month===m));if(v.pay>0)db.expenses.push({id:'iva-'+m,date:m+'-28',description:desc,company:'Importoys',amount:Math.round(v.pay*100)/100,type:'iva',month:m});save()}
+function renderInventory(){$('#inventoryTable').innerHTML=table(['Producto','Modelo','Precio','Existencias','Acciones'],db.inventory.map(p=>tr([esc(p.name),esc(p.model),money(p.price),p.qty,`<button class="btn light" onclick="editStock('${p.id}')">Ajustar</button> <button class="btn red" onclick="deleteProduct('${p.id}')">Eliminar</button>`])));updateProductOptions()}
+window.editStock=id0=>{let p=db.inventory.find(x=>x.id===id0);if(!p)return;let q=prompt('Nueva cantidad disponible para '+p.name,p.qty);if(q!==null&&q.trim()!==''&&Number(q)>=0){p.qty=Math.floor(Number(q));save();renderAll()}}
+window.deleteProduct=id0=>{if(!confirm('¿Eliminar este producto del inventario? Las ventas históricas se conservan.'))return;db.inventory=db.inventory.filter(x=>x.id!==id0);save();renderAll()}
+function renderSales(){let ss=[...db.sales].sort((a,b)=>b.date.localeCompare(a.date));$('#salesTable').innerHTML=table(['Fecha','Cliente','Producto','Cant.','Total','Comisión','Documento','Empresa venta','Tiene dinero','Acciones'],ss.map(s=>tr([esc(s.date),esc(s.client),esc(s.product+' / '+s.model),s.qty,money(s.gross),money(s.commission),esc(s.document),esc(s.owner),esc(s.holder),`<button class="btn light" onclick="changeSale('${s.id}')">Editar ubicación</button> <button class="btn red" onclick="deleteSale('${s.id}')">Anular</button>`])))}
+window.changeSale=id0=>{let s=db.sales.find(x=>x.id===id0);if(!s)return;let holder=prompt('Quién tiene el dinero: Importoys, Importshop o Bodega',s.holder);if(holder&&!['Importoys','Importshop','Bodega'].includes(holder)){alert('Valor no válido.');return}if(holder)s.holder=holder;let owner=prompt('Empresa a la que se asigna la venta: Importoys o Importshop',s.owner);if(owner&&!['Importoys','Importshop'].includes(owner)){alert('Valor no válido.');return}if(owner)s.owner=owner;save();renderAll()}
+window.deleteSale=id0=>{let s=db.sales.find(x=>x.id===id0);if(!s||!confirm('¿Anular esta venta y devolver sus unidades al inventario?'))return;let p=db.inventory.find(x=>x.id===s.productId);if(p)p.qty+=s.qty;db.sales=db.sales.filter(x=>x.id!==id0);save();renderAll()}
+function renderExpenses(){let xs=[...db.expenses].sort((a,b)=>b.date.localeCompare(a.date));$('#expensesTable').innerHTML=table(['Fecha','Descripción','Empresa','Importe','Tipo','Acciones'],xs.map(x=>tr([esc(x.date),esc(x.description),esc(x.company),money(x.amount),x.type==='iva'?'<span class="pill">IVA automático</span>':'Manual',x.type==='iva'?'—':`<button class="btn red" onclick="deleteExpense('${x.id}')">Eliminar</button>`])))}
+window.deleteExpense=id0=>{let x=db.expenses.find(x=>x.id===id0);if(!x||x.type==='iva')return;if(confirm('¿Eliminar este gasto?')){db.expenses=db.expenses.filter(y=>y.id!==id0);save();renderAll()}}
+function renderTransfers(){$('#transfersTable').innerHTML=table(['Fecha','Sale de','Se entrega a','Importe','Referencia'],[...db.transfers].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>tr([esc(x.date),esc(x.from),esc(x.to),money(x.amount),esc(x.note||'—')])));}
+function renderDashboard(){let m=$('#dashMonth').value||monthNow(),ss=monthSales(m),xs=monthExpenses(m),gross=ss.reduce((a,s)=>a+s.gross,0),comm=ss.reduce((a,s)=>a+s.commission,0),vat=ss.reduce((a,s)=>a+s.vat,0),exp=xs.reduce((a,x)=>a+x.amount,0);
+let k=[['Ventas brutas',money(gross),'Todas las ventas del mes'],['Comisiones',money(comm),'Descontadas antes de utilidad'],['IVA generado',money(vat),'CF y CCF, IVA incluido'],['Gastos registrados',money(exp),'Incluye IVA neto si ya fue calculado']];
+$('#kpis').innerHTML=k.map(x=>`<div class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="hint">${x[2]}</div></div>`).join('');
+let locs=['Tienda','Express de El Salvador','Aeromall de El Salvador'];$('#locationSummary').innerHTML=table(['Ubicación','Ventas'],locs.map(l=>tr([l,money(ss.filter(s=>s.location===l).reduce((a,s)=>a+s.gross,0))])));
+$('#recentSales').innerHTML=table(['Fecha','Cliente','Producto','Empresa','Total'],[...ss].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(s=>tr([esc(s.date),esc(s.client),esc(s.product),esc(s.owner),money(s.gross)])))}
+function renderVat(){let m=$('#vatMonth').value||monthNow(),v=vatInfo(m);$('#vatCarry').value=v.carry;$('#vatGenerated').value=v.generated.toFixed(2);$('#vatPayable').value=v.pay.toFixed(2);$('#vatNextCarry').value=v.next.toFixed(2);$('#vatDetails').innerHTML=`<p>Ventas CF/CCF incluidas: <b>${v.ss.filter(s=>['CF','CCF'].includes(s.document)).length}</b> · Remanente usado: <b>${money(v.carry)}</b> · IVA neto calculado: <b>${money(v.pay)}</b></p>`}
+$('#vatMonth').addEventListener('change',renderVat);$('#vatCarry').addEventListener('input',()=>{let m=$('#vatMonth').value||monthNow(),v=vatInfo(m),c=num($('#vatCarry').value);$('#vatGenerated').value=v.generated.toFixed(2);$('#vatPayable').value=Math.max(0,v.generated-c).toFixed(2);$('#vatNextCarry').value=Math.max(0,c-v.generated).toFixed(2)});
+$('#saveVat').addEventListener('click',()=>{let m=$('#vatMonth').value||monthNow();db.vatCarry[m]=num($('#vatCarry').value);syncVatExpense(m);renderAll();flash('#expenseMsg','Remanente guardado y gasto de IVA de Importoys actualizado.');});
+function settlement(m){let ss=monthSales(m),xs=monthExpenses(m),vat=vatInfo(m).pay;
+let rev=ss.reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0)),0),comm=ss.reduce((a,s)=>a+s.commission,0);
+let exI=xs.filter(x=>x.company==='Importoys').reduce((a,x)=>a+x.amount,0),exS=xs.filter(x=>x.company==='Importshop').reduce((a,x)=>a+x.amount,0);
+let profit=rev-comm-exI-exS,share=profit/2;
+let recI=ss.filter(s=>s.owner==='Importoys').reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0))-s.commission,0),recS=ss.filter(s=>s.owner==='Importshop').reduce((a,s)=>a+Math.max(0,s.gross-s.discount-(s.vat||0))-s.commission,0);
+let balanceI=recI-exI,balanceS=recS-exS;
+return {rev,comm,exI,exS,profit,share,recI,recS,balanceI,balanceS,vat}}
+function renderSettlement(){let m=$('#settleMonth').value||monthNow(),s=settlement(m),dueI=s.share-s.balanceI,dueS=s.share-s.balanceS;let payer=dueI<dueS?'Importoys':'Importshop',amount=Math.abs(dueI-dueS);
+$('#settlementResult').innerHTML=`<div class="grid"><div class="card kpi"><div class="label">Ingreso repartible preliminar</div><div class="value">${money(s.rev)}</div></div><div class="card kpi"><div class="label">Comisiones descontadas</div><div class="value">${money(s.comm)}</div></div><div class="card kpi"><div class="label">Utilidad preliminar</div><div class="value">${money(s.profit)}</div></div><div class="card kpi"><div class="label">50% para cada empresa</div><div class="value">${money(s.share)}</div></div></div>
+<div class="panel"><h3>Detalle de liquidación · ${esc(m)}</h3>${table(['Concepto','Importoys','Importshop','Total'],[tr(['Ingresos asignados (sin IVA calculado)',money(s.recI+s.exI),money(s.recS+s.exS),money(s.rev+s.comm)]),tr(['Gastos registrados',money(s.exI),money(s.exS),money(s.exI+s.exS)]),tr(['Saldo administrativo antes del ajuste',money(s.balanceI),money(s.balanceS),money(s.balanceI+s.balanceS)]),tr(['Utilidad objetivo 50/50',money(s.share),money(s.share),money(s.share*2)]),tr(['Diferencia frente al objetivo',money(s.balanceI-s.share),money(s.balanceS-s.share),'—'])])}</div>
+<div class="panel"><h3>Resultado de compensación</h3><p>${Math.abs(s.balanceI-s.share)<0.01&&Math.abs(s.balanceS-s.share)<0.01?'Las dos empresas están equilibradas según los registros actuales.':`Para igualar los saldos registrados, ${esc(payer)} debe transferir ${money(amount)} a ${payer==='Importoys'?'Importshop':'Importoys'}.`}</p><p class="sub">El IVA neto estimado del mes es ${money(s.vat)} y se registra como gasto de Importoys al guardar el cálculo en Gastos e IVA.</p></div>`}
+$('#calcSettlement').addEventListener('click',renderSettlement);
+function renderReports(){let m=$('#reportMonth').value||monthNow(),ss=monthSales(m),xs=monthExpenses(m),companies=['Importoys','Importshop'],holders=['Importoys','Importshop','Bodega'];$('#reportSummary').innerHTML='<div class="grid">'+companies.map(c=>`<div class="card kpi"><div class="label">Ventas asignadas a ${c}</div><div class="value">${money(ss.filter(s=>s.owner===c).reduce((a,s)=>a+s.gross,0))}</div></div>`).join('')+`<div class="card kpi"><div class="label">Total de ventas</div><div class="value">${money(ss.reduce((a,s)=>a+s.gross,0))}</div></div><div class="card kpi"><div class="label">Total de gastos</div><div class="value">${money(xs.reduce((a,x)=>a+x.amount,0))}</div></div></div>`+table(['Quién tiene el dinero','Ventas cuyo dinero está asignado aquí'],holders.map(h=>tr([h,money(ss.filter(s=>s.holder===h).reduce((a,s)=>a+s.gross,0))])));
+$('#reportSales').innerHTML=table(['Fecha','Cliente','Producto','Documento','Empresa','Ubicación','Tiene dinero','Total','IVA incluido'],ss.map(s=>tr([esc(s.date),esc(s.client),esc(s.product),esc(s.document),esc(s.owner),esc(s.location),esc(s.holder),money(s.gross),money(s.vat)])));
+$('#reportExpenses').innerHTML=table(['Empresa','Gastos del mes'],companies.map(c=>tr([c,money(xs.filter(x=>x.company===c).reduce((a,x)=>a+x.amount,0))])))}
+function renderAll(){renderInventory();renderSales();renderExpenses();renderTransfers();renderDashboard();renderVat();renderSettlement();renderReports()}
+$('#refreshDash').onclick=renderDashboard;$('#refreshReports').onclick=renderReports;
+$('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='respaldo-importoys-'+today()+'.json';a.click();URL.revokeObjectURL(url);$('#backupMsg').textContent='Respaldo exportado.'};
+$('#importFile').addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text());if(!data.inventory||!data.sales||!data.expenses)throw Error();if(!confirm('Restaurar reemplazará los datos actuales. ¿Continuar?'))return;db=Object.assign({inventory:[],sales:[],expenses:[],transfers:[],vatCarry:{}},data);save();renderAll();$('#backupMsg').textContent='Respaldo restaurado correctamente.'}catch(err){alert('El archivo no es un respaldo válido de esta aplicación.')}e.target.value=''});
+$('#clearData').onclick=()=>{if(confirm('¿Seguro que deseas borrar TODOS los datos locales? Exporta un respaldo antes.')){db={inventory:[],sales:[],expenses:[],transfers:[],vatCarry:{}};save();renderAll();alert('Datos borrados.')}};
+setDefaults();renderAll();
+</script>
+</body></html>

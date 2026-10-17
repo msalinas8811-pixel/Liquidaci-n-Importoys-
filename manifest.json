@@ -1,0 +1,9 @@
+{
+  "name": "Control de Ventas y Liquidación Importoys",
+  "short_name": "Importoys Control",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#0754a6",
+  "description": "Control local de ventas, inventario, gastos e IVA de Importoys e Importshop."
+}
