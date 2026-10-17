@@ -1,0 +1,32 @@
+VENTAS Y LIQUIDACIÓN · IMPORTOYS
+App instalable (PWA). No necesita servidor ni base de datos.
+
+CÓMO PUBLICARLA (elige una)
+1) Netlify Drop (lo más rápido)
+   - Entra a app.netlify.com/drop
+   - Arrastra esta carpeta ya descomprimida (con index.html adentro).
+   - Te da un enlace https:// listo para usar.
+2) GitHub Pages
+   - Crea un repositorio, sube todos los archivos de esta carpeta
+     y activa Settings > Pages.
+3) Cualquier hosting propio
+   - Sube los archivos a una carpeta con HTTPS. Debe ser https://,
+     si no el teléfono no ofrece instalar la app.
+
+CÓMO INSTALARLA
+- Android (Chrome): abre el enlace y toca "Instalar app" al final de la
+  página, o menú ⋮ > Instalar aplicación.
+- iPhone (Safari): botón Compartir > Agregar a pantalla de inicio.
+- Computadora (Chrome o Edge): ícono de instalar en la barra de direcciones.
+
+SUS DATOS
+- Los datos se guardan SOLO en el dispositivo donde se usa la app.
+  Otro teléfono u otra persona empieza vacío.
+- Para pasar datos de un dispositivo a otro, o hacer respaldo:
+  al final de la página, "Descargar copia" y luego "Restaurar copia"
+  en el otro dispositivo.
+- Si borras los datos del navegador, se pierden: haz copias seguido.
+
+ACTUALIZAR LA APP
+- Sube de nuevo los archivos al mismo sitio. En sw.js, cambia
+  ventas-v1 por ventas-v2 para forzar la actualización.
