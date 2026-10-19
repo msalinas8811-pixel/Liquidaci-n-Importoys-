@@ -266,7 +266,7 @@ var costOf=function(s){var u=s.unitCost;if(u==null){var p=null;for(var i=0;i<S.i
 var costKnown=function(s){if(s.unitCost!=null)return true;return S.inv.some(function(p){return p.id===s.productId&&p.cost!=null})};
 var plural=function(n,a,b){return n+' '+(n===1?a:b)};
 
-var S={db:null,err:null,inv:[],sales:[],exp:[],cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,cred:false},credit:{},creditDocs:[],restore:null,
+var S={db:null,err:null,inv:[],sales:[],exp:[],cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,cred:false,pac:false},credit:{},creditDocs:[],pac:{},restore:null,
   tab:'ventas',hf:'all',q:'',liq:null,open:new Set(),del:null,copy:null};
 
 /* ---------- datos ---------- */
@@ -290,6 +290,7 @@ async function init(){
   S.db.collection('sales').onSnapshot(function(s){S.sales=mapDocs(s);S.loaded.sales=true;sched()},bad);
   S.db.collection('expenses').onSnapshot(function(s){S.exp=mapDocs(s);S.loaded.exp=true;sched()},bad);
   S.db.collection('ivaCredit').onSnapshot(function(s){S.creditDocs=mapDocs(s);S.credit={};S.creditDocs.forEach(function(d){S.credit[d.id]=Number(d.amount)||0});S.loaded.cred=true;sched()},bad);
+  S.db.collection('pacManual').onSnapshot(function(s){S.pac={};mapDocs(s).forEach(function(d){S.pac[d.id]=Number(d.amount)||0});S.loaded.pac=true;sched()},bad);
   S.db.doc('config/main').onSnapshot(function(s){var d=s.exists?s.data():{};S.cfg={deduct:d.deduct!==false};sched()},bad);
 }
 
@@ -337,7 +338,7 @@ function sched(){if(pending)return;pending=true;requestAnimationFrame(render)}
 function buildTabs(){
   $('#tabs').innerHTML=TABS.map(function(t){return '<button type="button" data-a="tab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('');
 }
-function ready(){return S.err==='nodb'||(S.loaded.inv&&S.loaded.sales&&S.loaded.exp&&S.loaded.cred)}
+function ready(){return S.err==='nodb'||(S.loaded.inv&&S.loaded.sales&&S.loaded.exp&&S.loaded.cred&&S.loaded.pac)}
 var toastT;
 function toast(msg,bad){var t=$('#toast');t.textContent=msg;t.className='toast show'+(bad?' bad':'');clearTimeout(toastT);toastT=setTimeout(function(){t.className='toast'},2800)}
 
@@ -347,7 +348,7 @@ function bannerHTML(){
   if(S.err==='nodb')h+='<div class="banner warn">Esta vista no puede guardar datos. Abre la página con tu cuenta de Claude para registrar ventas.</div>';
   if(S.err==='dberr')h+='<div class="banner warn">Se perdió la conexión con los datos. Recarga la página.</div>';
   if(S.restore){
-    var n=0;['inventory','sales','expenses','ivaCredit'].forEach(function(c){n+=Object.keys(S.restore[c]||{}).length});
+    var n=0;['inventory','sales','expenses','ivaCredit','pacManual'].forEach(function(c){n+=Object.keys(S.restore[c]||{}).length});
     h+='<div class="banner"><span><b>¿Restaurar copia?</b> Tiene '+plural(n,'registro','registros')+' y reemplaza los datos actuales.</span><span><button class="btn bad" data-a="restore-yes">Sí, restaurar</button> <button class="lk" data-a="restore-no">Cancelar</button></span></div>';
   }
   if(ready()&&hasExamples()){
@@ -459,8 +460,12 @@ function taxExpenses(){
     var parts=[];if(o.cf)parts.push(plural(o.cf,'venta CF','ventas CF'));if(o.ccf)parts.push(plural(o.ccf,'venta CCF','ventas CCF'));
     out.push({id:'auto-iva-'+k,auto:true,kind:'iva',description:'IVA a pagar (13%) · '+mlabel(k),who:'Importoys',amount:t.pay/100,date:date,
       note:parts.join(' y ')+' por '+money(o.base)+' · IVA '+money(t.vat)+(t.cr?' − remanente '+money(t.cr):'')+(t.left?' · sobran '+money(t.left)+' para el mes siguiente':'')});
-    out.push({id:'auto-pac-'+k,auto:true,kind:'pac',description:'Pago a cuenta (1.75%) · '+mlabel(k),who:'Importoys',amount:t.pac/100,date:date,
-      note:'Ventas sin IVA '+money(t.sinIva)+' − costo '+money(o.cost)+' = ganancia '+money(t.gan)+(o.nc?' · '+plural(o.nc,'venta sin precio de compra','ventas sin precio de compra'):'')});
+  });
+  Object.keys(S.pac).forEach(function(k){
+    var amt=cents(S.pac[k]);if(amt<=0)return;
+    var t=monthTax(k,m[k]),p=k.split('-'),date=k+'-'+pad(new Date(+p[0],+p[1],0).getDate());
+    out.push({id:'auto-pac-'+k,auto:true,kind:'pac',description:'Pago a cuenta · '+mlabel(k),who:'Importoys',amount:amt/100,date:date,
+      note:'Monto escrito por ti · el calculado da '+money(t.pac)});
   });
   return out;
 }
@@ -468,16 +473,18 @@ function ivaSection(){
   var m=taxByMonth(),keys={};
   S.sales.forEach(function(s){if(s.date)keys[mkey(s.date)]=1});
   Object.keys(S.credit).forEach(function(k){keys[k]=1});
+  Object.keys(S.pac).forEach(function(k){keys[k]=1});
   keys[today().slice(0,7)]=1;
   var rows=Object.keys(keys).sort().reverse().map(function(k){
-    var t=monthTax(k,m[k]),pk=prevKey(k),pt=monthTax(pk,m[pk]),pleft=pt.left;
+    var t=monthTax(k,m[k]),pm=cents(S.pac[k]),pk=prevKey(k),pt=monthTax(pk,m[pk]),pleft=pt.left;
     var hint=(pleft>0&&pleft!==t.cr)?'<p class="iva-hint">Del mes anterior sobraron '+money(pleft)+'. <button type="button" class="lk" data-a="use-credit" data-k="'+k+'" data-v="'+pleft+'">Usar este valor</button></p>':'';
     return '<div class="iva-row"><div class="iva-m"><h3>'+mlabel(k)+'</h3><span class="stat">IVA de ventas CF y CCF <b class="num">'+money(t.vat)+'</b></span></div>'+
       '<div class="fld"><label for="cr-'+k+'">Remanente del mes anterior ($)</label><input id="cr-'+k+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" data-a="credit" data-k="'+k+'" value="'+(t.cr?(t.cr/100).toFixed(2):'')+'"></div>'+
       '<div class="iva-pay"><span class="stat">IVA a pagar</span><b class="num">'+money(t.pay)+'</b>'+(t.left?'<small>Sobran '+money(t.left)+' para el mes siguiente</small>':'')+'</div>'+
-      '<div class="iva-pay"><span class="stat">Pago a cuenta (1.75%)</span><b class="num">'+money(t.pac)+'</b><small>Ganancia CF y CCF '+money(t.gan)+'</small></div>'+hint+'</div>';
+      '<div class="iva-pay"><span class="stat">Pago a cuenta calculado (1.75%)</span><b class="num">'+money(t.pac)+'</b><small>Ganancia CF y CCF '+money(t.gan)+'</small></div>'+
+      '<div class="fld"><label for="pm-'+k+'">Pago a cuenta a pagar ($)</label><input id="pm-'+k+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" data-a="pacman" data-k="'+k+'" value="'+(pm?(pm/100).toFixed(2):'')+'">'+(t.pac>0&&pm!==t.pac?'<button type="button" class="lk" style="justify-self:start" data-a="use-pac" data-k="'+k+'" data-v="'+t.pac+'">Usar el calculado</button>':'')+'</div>'+hint+'</div>';
   });
-  return '<div class="sec-title">IVA y pago a cuenta por mes</div><div class="group">'+rows.join('')+'</div><p class="stat" style="margin:8px 2px 0">El IVA a pagar es el IVA de las ventas menos el remanente. El pago a cuenta es el 1.75% de la ganancia de las ventas CF y CCF: venta sin IVA menos el precio de compra. Los dos pasan a los gastos de Importoys.</p>';
+  return '<div class="sec-title">IVA y pago a cuenta por mes</div><div class="group">'+rows.join('')+'</div><p class="stat" style="margin:8px 2px 0">El IVA a pagar es el IVA de las ventas menos el remanente. El pago a cuenta calculado es el 1.75% de la ganancia de las ventas CF y CCF (venta sin IVA menos precio de compra) y solo sirve de referencia. Lo que escribas en «Pago a cuenta a pagar» es lo que pasa a los gastos de Importoys, junto con el IVA a pagar.</p>';
 }
 function allExp(){return S.exp.concat(taxExpenses())}
 function viewExp(){
@@ -748,6 +755,10 @@ document.addEventListener('click',async function(ev){
       for(var i=0;i<jobs.length&&ok;i++){var path=jobs[i];ok=await run(function(){return S.db.doc(path).delete()})}
       toast(ok?'Ejemplos borrados':'No se pudieron borrar todos',!ok);
       render();break}
+    case 'use-pac':
+      if(needDb())break;
+      await run(function(){return S.db.doc('pacManual/'+t.dataset.k).set({amount:Number(t.dataset.v)/100})},'Pago a cuenta guardado');
+      break;
     case 'use-credit':
       if(needDb())break;
       await run(function(){return S.db.doc('ivaCredit/'+t.dataset.k).set({amount:Number(t.dataset.v)/100})},'Remanente guardado');
@@ -791,6 +802,12 @@ document.addEventListener('change',function(ev){
     if(v<0){toast('El remanente no puede ser negativo.',true);render();return}
     run(function(){var r=S.db.doc('ivaCredit/'+k);return v>0?r.set({amount:v}):r.delete()},v>0?'Remanente guardado':'Remanente quitado');
   }
+  else if(a==='pacman'){
+    if(needDb()){render();return}
+    var kp=t.dataset.k,vp=num(t.value);
+    if(vp<0){toast('El pago a cuenta no puede ser negativo.',true);render();return}
+    run(function(){var r=S.db.doc('pacManual/'+kp);return vp>0?r.set({amount:vp}):r.delete()},vp>0?'Pago a cuenta guardado':'Pago a cuenta quitado');
+  }
   else if(a==='ded'){
     if(needDb()){render();return}
     var on=t.checked;
@@ -820,7 +837,7 @@ $('#view').addEventListener('toggle',function(ev){
 
 /* ---------- almacenamiento local (sin servidor) ---------- */
 function makeLocalDb(){
-  var KEY='importoys-ventas-v1',COLS=['inventory','sales','expenses','ivaCredit','config'],data={},subs=[];
+  var KEY='importoys-ventas-v1',COLS=['inventory','sales','expenses','ivaCredit','pacManual','config'],data={},subs=[];
   function load(){try{var o=JSON.parse(localStorage.getItem(KEY)||'{}');data=o&&typeof o==='object'?o:{}}catch(e){data={}}}
   function save(){localStorage.setItem(KEY,JSON.stringify(data))}
   function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
