@@ -262,6 +262,8 @@ var mlabel=function(k){var p=String(k).split('-');return (MONTHS[+p[1]-1]||k)+' 
 var fdate=function(d){var p=String(d||'').split('-');return (p.length===3&&MONTHS[+p[1]-1])?(+p[2])+' '+MONTHS[+p[1]-1].slice(0,3).toLowerCase()+' '+p[0]:String(d||'')};
 var gross=function(s){return cents(s.unitPrice)*(parseInt(s.qty,10)||0)};
 var net=function(s){return gross(s)-cents(s.discount)};
+var costOf=function(s){var u=s.unitCost;if(u==null){var p=null;for(var i=0;i<S.inv.length;i++){if(S.inv[i].id===s.productId){p=S.inv[i];break}}u=(p&&p.cost!=null)?p.cost:0}return cents(u)*(parseInt(s.qty,10)||0)};
+var costKnown=function(s){if(s.unitCost!=null)return true;return S.inv.some(function(p){return p.id===s.productId&&p.cost!=null})};
 var plural=function(n,a,b){return n+' '+(n===1?a:b)};
 
 var S={db:null,err:null,inv:[],sales:[],exp:[],cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,cred:false},credit:{},creditDocs:[],restore:null,
@@ -299,18 +301,18 @@ function cmpSale(a,b){return String(b.date).localeCompare(String(a.date))||(b.cr
 
 function calc(key){
   var inM=function(d){return key==='all'||mkey(d)===key};
-  var P={};HOLDERS.forEach(function(h){P[h]={name:h,inc:0,comm:0,exp:0,n:0,list:[]}});
-  var sellers={};
+  var P={};HOLDERS.forEach(function(h){P[h]={name:h,inc:0,comm:0,exp:0,n:0,cost:0,list:[]}});
+  var sellers={},nc=0;
   S.sales.filter(function(s){return inM(s.date)}).forEach(function(s){
     var h=P[s.holder]||P.Bodega,v=net(s),c=cents(s.commission);
-    h.inc+=v;h.comm+=c;h.n++;h.list.push(s);
+    h.inc+=v;h.comm+=c;h.n++;h.list.push(s);h.cost+=costOf(s);if(!costKnown(s))nc++;
     var k=String(s.seller||'').trim()||'Sin vendedor';
     var o=sellers[k]||(sellers[k]={n:0,sales:0,comm:0});o.n++;o.sales+=v;o.comm+=c;
   });
-  var tax=0;
-  allExp().filter(function(e){return inM(e.date)}).forEach(function(e){var c=cents(e.amount);(P[e.who]||P.Importoys).exp+=c;if(e.auto)tax+=c});
-  var ded=S.cfg.deduct!==false,T={inc:0,comm:0,exp:0,n:0};
-  HOLDERS.forEach(function(h){T.inc+=P[h].inc;T.comm+=P[h].comm;T.exp+=P[h].exp;T.n+=P[h].n});
+  var iva=0,pac=0;
+  allExp().filter(function(e){return inM(e.date)}).forEach(function(e){var c=cents(e.amount);(P[e.who]||P.Importoys).exp+=c;if(e.auto){if(e.kind==='pac')pac+=c;else iva+=c}});
+  var ded=S.cfg.deduct!==false,T={inc:0,comm:0,exp:0,n:0,cost:0};
+  HOLDERS.forEach(function(h){T.inc+=P[h].inc;T.comm+=P[h].comm;T.exp+=P[h].exp;T.n+=P[h].n;T.cost+=P[h].cost});
   var profit=T.inc-(ded?T.comm:0)-T.exp;
   HOLDERS.forEach(function(h){P[h].bal=P[h].inc-(ded?P[h].comm:0)-P[h].exp});
   var half=Math.floor(profit/2);
@@ -326,7 +328,7 @@ function calc(key){
     give[i].r-=a;take[j].r-=a;
     if(give[i].r===0)i++;if(take[j].r===0)j++;
   }
-  return {P:P,sellers:sellers,T:T,profit:profit,ded:ded,pays:pays,half:half,tax:tax};
+  return {P:P,sellers:sellers,T:T,profit:profit,ded:ded,pays:pays,half:half,iva:iva,pac:pac,real:profit-T.cost,nocost:nc};
 }
 
 /* ---------- interfaz base ---------- */
@@ -423,35 +425,42 @@ function viewInv(){
   return h+'<div class="group">'+list.map(function(p){
     var a=avail(p),s=sold(p.id);
     return '<article class="row"><div class="r-main"><h3>'+esc(p.name)+(p.example?'<span class="tag">Ejemplo</span>':'')+'</h3><p>'+(p.model?'Modelo '+esc(p.model):'Sin modelo')+'</p></div>'+
-      '<div class="r-amt num">'+money(cents(p.price))+'</div>'+
-      '<p class="r-meta stat">Cantidad <b class="num">'+(parseInt(p.qty,10)||0)+'</b> · Vendidas <b class="num">'+s+'</b> · Disponibles <b class="num">'+a+'</b>'+(a===0?'<span class="pill-bad">Agotado</span>':a<0?'<span class="pill-bad">Revisar cantidad</span>':'')+'</p>'+
+      '<div class="r-amt num">'+money(cents(p.price))+(p.cost!=null?'<small>Compra '+money(cents(p.cost))+'</small>':'')+'</div>'+
+      '<p class="r-meta stat">'+(p.cost==null?'<span class="pill-bad" style="margin:0 6px 0 0">Sin precio de compra</span>':'Margen <b class="num">'+money(cents(p.price)-cents(p.cost))+'</b>'+(cents(p.price)>0?' ('+Math.round((cents(p.price)-cents(p.cost))*100/cents(p.price))+'%)':'')+' · ')+'Cantidad <b class="num">'+(parseInt(p.qty,10)||0)+'</b> · Vendidas <b class="num">'+s+'</b> · Disponibles <b class="num">'+a+'</b>'+(a===0?'<span class="pill-bad">Agotado</span>':a<0?'<span class="pill-bad">Revisar cantidad</span>':'')+'</p>'+
       '<div class="r-foot"><span></span>'+actsHTML('inv',p.id)+'</div></article>';
   }).join('')+'</div>';
 }
 
 /* ---------- gastos ---------- */
-var IVA=0.13;
+var IVA=0.13,PAC=0.0175;
 function taxByMonth(){
   var m={};
   S.sales.forEach(function(s){
     if(s.doc!=='CF'&&s.doc!=='CCF')return;
     var k=mkey(s.date);if(!k)return;
-    var o=m[k]||(m[k]={cf:0,ccf:0,base:0});
+    var o=m[k]||(m[k]={cf:0,ccf:0,base:0,cost:0,nc:0});
     if(s.doc==='CF')o.cf++;else o.ccf++;
-    o.base+=net(s);
+    o.base+=net(s);o.cost+=costOf(s);if(!costKnown(s))o.nc++;
   });
   return m;
 }
 function vatOf(base){return Math.round(base-base/(1+IVA))}
 function prevKey(k){var p=k.split('-'),y=+p[0],m=+p[1]-1;if(m<1){m=12;y--}return y+'-'+pad(m)}
+function monthTax(k,o){
+  var vat=o?vatOf(o.base):0,cr=cents(S.credit[k]);
+  var sinIva=o?o.base-vat:0,gan=o?sinIva-o.cost:0;
+  return {vat:vat,cr:cr,pay:Math.max(0,vat-cr),left:Math.max(0,cr-vat),sinIva:sinIva,gan:gan,pac:Math.max(0,Math.round(gan*PAC))};
+}
 function taxExpenses(){
   var m=taxByMonth(),out=[];
   Object.keys(m).forEach(function(k){
-    var o=m[k],vat=vatOf(o.base),cr=cents(S.credit[k]),pay=Math.max(0,vat-cr),left=Math.max(0,cr-vat);
+    var o=m[k],t=monthTax(k,o);
     var p=k.split('-'),date=k+'-'+pad(new Date(+p[0],+p[1],0).getDate());
     var parts=[];if(o.cf)parts.push(plural(o.cf,'venta CF','ventas CF'));if(o.ccf)parts.push(plural(o.ccf,'venta CCF','ventas CCF'));
-    var note=parts.join(' y ')+' por '+money(o.base)+' · IVA '+money(vat)+(cr?' − remanente '+money(cr):'')+(left?' · sobran '+money(left)+' para el mes siguiente':'');
-    out.push({id:'auto-iva-'+k,auto:true,description:'IVA a pagar (13%) · '+mlabel(k),who:'Importoys',amount:pay/100,date:date,note:note});
+    out.push({id:'auto-iva-'+k,auto:true,kind:'iva',description:'IVA a pagar (13%) · '+mlabel(k),who:'Importoys',amount:t.pay/100,date:date,
+      note:parts.join(' y ')+' por '+money(o.base)+' · IVA '+money(t.vat)+(t.cr?' − remanente '+money(t.cr):'')+(t.left?' · sobran '+money(t.left)+' para el mes siguiente':'')});
+    out.push({id:'auto-pac-'+k,auto:true,kind:'pac',description:'Pago a cuenta (1.75%) · '+mlabel(k),who:'Importoys',amount:t.pac/100,date:date,
+      note:'Ventas sin IVA '+money(t.sinIva)+' − costo '+money(o.cost)+' = ganancia '+money(t.gan)+(o.nc?' · '+plural(o.nc,'venta sin precio de compra','ventas sin precio de compra'):'')});
   });
   return out;
 }
@@ -461,14 +470,14 @@ function ivaSection(){
   Object.keys(S.credit).forEach(function(k){keys[k]=1});
   keys[today().slice(0,7)]=1;
   var rows=Object.keys(keys).sort().reverse().map(function(k){
-    var o=m[k],vat=o?vatOf(o.base):0,cr=cents(S.credit[k]),pay=Math.max(0,vat-cr),left=Math.max(0,cr-vat);
-    var pk=prevKey(k),po=m[pk],pleft=Math.max(0,cents(S.credit[pk])-(po?vatOf(po.base):0));
-    var hint=(pleft>0&&pleft!==cr)?'<p class="iva-hint">Del mes anterior sobraron '+money(pleft)+'. <button type="button" class="lk" data-a="use-credit" data-k="'+k+'" data-v="'+pleft+'">Usar este valor</button></p>':'';
-    return '<div class="iva-row"><div class="iva-m"><h3>'+mlabel(k)+'</h3><span class="stat">IVA de ventas CF y CCF <b class="num">'+money(vat)+'</b></span></div>'+
-      '<div class="fld"><label for="cr-'+k+'">Remanente del mes anterior ($)</label><input id="cr-'+k+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" data-a="credit" data-k="'+k+'" value="'+(cr?(cr/100).toFixed(2):'')+'"></div>'+
-      '<div class="iva-pay"><span class="stat">IVA a pagar</span><b class="num">'+money(pay)+'</b>'+(left?'<small>Sobran '+money(left)+' para el mes siguiente</small>':'')+'</div>'+hint+'</div>';
+    var t=monthTax(k,m[k]),pk=prevKey(k),pt=monthTax(pk,m[pk]),pleft=pt.left;
+    var hint=(pleft>0&&pleft!==t.cr)?'<p class="iva-hint">Del mes anterior sobraron '+money(pleft)+'. <button type="button" class="lk" data-a="use-credit" data-k="'+k+'" data-v="'+pleft+'">Usar este valor</button></p>':'';
+    return '<div class="iva-row"><div class="iva-m"><h3>'+mlabel(k)+'</h3><span class="stat">IVA de ventas CF y CCF <b class="num">'+money(t.vat)+'</b></span></div>'+
+      '<div class="fld"><label for="cr-'+k+'">Remanente del mes anterior ($)</label><input id="cr-'+k+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" data-a="credit" data-k="'+k+'" value="'+(t.cr?(t.cr/100).toFixed(2):'')+'"></div>'+
+      '<div class="iva-pay"><span class="stat">IVA a pagar</span><b class="num">'+money(t.pay)+'</b>'+(t.left?'<small>Sobran '+money(t.left)+' para el mes siguiente</small>':'')+'</div>'+
+      '<div class="iva-pay"><span class="stat">Pago a cuenta (1.75%)</span><b class="num">'+money(t.pac)+'</b><small>Ganancia CF y CCF '+money(t.gan)+'</small></div>'+hint+'</div>';
   });
-  return '<div class="sec-title">IVA por mes</div><div class="group">'+rows.join('')+'</div><p class="stat" style="margin:8px 2px 0">El IVA a pagar es el IVA de las ventas menos el remanente. Ese resultado pasa a los gastos de Importoys.</p>';
+  return '<div class="sec-title">IVA y pago a cuenta por mes</div><div class="group">'+rows.join('')+'</div><p class="stat" style="margin:8px 2px 0">El IVA a pagar es el IVA de las ventas menos el remanente. El pago a cuenta es el 1.75% de la ganancia de las ventas CF y CCF: venta sin IVA menos el precio de compra. Los dos pasan a los gastos de Importoys.</p>';
 }
 function allExp(){return S.exp.concat(taxExpenses())}
 function viewExp(){
@@ -489,7 +498,7 @@ function viewExp(){
     h+='<div class="month-head"><h3>'+mlabel(cur)+'</h3><span class="num">'+plural(buf.length,'gasto','gastos')+' · '+money(t)+'</span></div><div class="group">'+buf.map(function(e){
       var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';
       if(e.auto)return '<article class="row"><div class="r-main"><h3>'+esc(e.description)+'<span class="tag">Automático</span></h3><p><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span> · '+esc(e.note)+'</p></div>'+
-        '<div class="r-amt num">'+money(cents(e.amount))+'</div><p class="r-meta">El IVA se calcula solo con las ventas marcadas CF o CCF.</p></article>';
+        '<div class="r-amt num">'+money(cents(e.amount))+'</div><p class="r-meta">Se calcula solo con las ventas marcadas CF o CCF.</p></article>';
       return '<article class="row"><div class="r-main"><h3>'+esc(e.description)+(e.example?'<span class="tag">Ejemplo</span>':'')+'</h3><p><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span> · '+fdate(e.date)+'</p></div>'+
         '<div class="r-amt num">'+money(cents(e.amount))+'</div><div class="r-foot"><span></span>'+actsHTML('exp',e.id)+'</div></article>';
     }).join('')+'</div>';
@@ -512,9 +521,13 @@ function monthCard(k){
       '<div><dt>Gastos de Importoys</dt><dd class="num">'+money(P.Importoys.exp)+'</dd></div>'+
       '<div><dt>Gastos de Importshop</dt><dd class="num">'+money(P.Importshop.exp)+'</dd></div>'+
       '<div><dt>Total de gastos</dt><dd class="num">'+money(r.T.exp)+'</dd></div>'+
-      (r.tax?'<div><dt>Incluye IVA a pagar</dt><dd class="num">'+money(r.tax)+'</dd></div>':'')+
+      (r.iva?'<div><dt>Incluye IVA a pagar</dt><dd class="num">'+money(r.iva)+'</dd></div>':'')+
+      (r.pac?'<div><dt>Incluye pago a cuenta</dt><dd class="num">'+money(r.pac)+'</dd></div>':'')+
       '<div><dt>Comisiones'+(r.ded?'':' (no se descuentan)')+'</dt><dd class="num">'+money(r.T.comm)+'</dd></div>'+
-      '<div class="strong"><dt>'+(r.profit<0?'Pérdida del mes':'Ganancia del mes')+'</dt><dd class="num">'+money(r.profit)+'</dd></div>'+
+      '<div><dt>Ganancia antes del costo de productos</dt><dd class="num">'+money(r.profit)+'</dd></div>'+
+      '<div><dt>Costo de productos vendidos</dt><dd class="num">−'+money(r.T.cost)+'</dd></div>'+
+      (r.nocost?'<div><dt style="color:var(--bad)">Ventas sin precio de compra</dt><dd class="num" style="color:var(--bad)">'+r.nocost+'</dd></div>':'')+
+      '<div class="strong"><dt>'+(r.real<0?'Pérdida real del mes':'Ganancia real del mes')+'</dt><dd class="num">'+money(r.real)+'</dd></div>'+
     '</dl>';
   var sk=Object.keys(r.sellers).sort(function(a,b){return r.sellers[b].sales-r.sellers[a].sales});
   if(sk.length){
@@ -567,7 +580,7 @@ function viewLiq(){
     '<div style="min-width:170px"><label for="liqm" class="stat" style="display:block;margin-bottom:4px">Período</label><select id="liqm">'+months.map(function(m){return '<option value="'+m+'"'+(m===key?' selected':'')+'>'+mlabel(m)+'</option>'}).join('')+'<option value="all"'+(key==='all'?' selected':'')+'>Todo el historial</option></select></div></div>';
   if(!S.sales.length&&!S.exp.length)return h+'<div class="empty"><strong>No hay nada que liquidar</strong><span>Registra ventas y gastos para calcular cuánto tiene cada uno y quién paga a quién.</span></div>';
   h+='<section class="card hero"><span class="lab">'+(r.profit<0?'Pérdida a repartir':'Ganancia a repartir')+'</span><span class="big num" style="font-family:var(--f-num);font-weight:500">'+money(r.profit)+'</span>'+
-    '<span class="sub">'+(r.profit===0?'No hay ganancia en este período.':'A cada empresa le corresponde '+money(r.P.Importoys.target)+(r.P.Importoys.target!==r.P.Importshop.target?' y '+money(r.P.Importshop.target):'')+'.')+'</span></section>';
+    '<span class="sub">'+(r.profit===0?'No hay ganancia en este período.':'A cada empresa le corresponde '+money(r.P.Importoys.target)+(r.P.Importoys.target!==r.P.Importshop.target?' y '+money(r.P.Importshop.target):'')+'.')+'</span>'+(r.T.cost?'<span class="sub">Este reparto todavía no resta el costo de los productos ('+money(r.T.cost)+'). Ganancia real: <b class="num">'+money(r.real)+'</b>.</span>':'')+'</section>';
   h+='<div class="sec-title">Quién paga a quién</div><section class="card pays">';
   if(r.pays.length)h+=r.pays.map(function(p){return '<div class="pay"><span class="who h-'+p.from+'"><i class="dot"></i>'+p.from+'</span><span class="arrow">paga</span><span class="num">'+money(p.amt)+'</span><span class="arrow">a</span><span class="who h-'+p.to+'"><i class="dot"></i>'+p.to+'</span></div>'}).join('');
   else h+='<div class="ok">Todo está al día. No hay pagos pendientes.</div>';
@@ -603,8 +616,8 @@ function openSale(id){
   var s=sale||{date:today(),qty:1,discount:'',commission:'',holder:'Importoys',channel:CHANNELS[0],payment:'Efectivo',seller:'',guide:'',customer:''};
   var prods=S.inv.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),'es')});
   var opts='<option value="">Elige un producto</option>';
-  var opt=function(p,a,sel){return '<option value="'+p.id+'" data-name="'+esc(p.name)+'" data-model="'+esc(p.model||'')+'" data-price="'+Number(p.price)+'"'+(sel?' selected':'')+'>'+esc(p.name)+(p.model?' · '+esc(p.model):'')+' — '+money(cents(p.price))+(a==null?'':' · disp. '+a)+'</option>'};
-  if(sale&&!prods.some(function(p){return p.id===sale.productId}))opts+=opt({id:sale.productId,name:sale.productName,model:sale.productModel,price:sale.unitPrice},null,true);
+  var opt=function(p,a,sel){return '<option value="'+p.id+'" data-name="'+esc(p.name)+'" data-model="'+esc(p.model||'')+'" data-price="'+Number(p.price)+'" data-cost="'+(p.cost==null?'':Number(p.cost))+'"'+(sel?' selected':'')+'>'+esc(p.name)+(p.model?' · '+esc(p.model):'')+' — '+money(cents(p.price))+(a==null?'':' · disp. '+a)+'</option>'};
+  if(sale&&!prods.some(function(p){return p.id===sale.productId}))opts+=opt({id:sale.productId,name:sale.productName,model:sale.productModel,price:sale.unitPrice,cost:sale.unitCost},null,true);
   prods.forEach(function(p){opts+=opt(p,avail(p,sale&&sale.id),sale&&sale.productId===p.id)});
   var chans=uniq(CHANNELS.concat([s.channel]));
   var html='<form id="f" data-kind="sale" novalidate'+(sale?' data-pid="'+esc(sale.productId)+'" data-unit="'+Number(sale.unitPrice)+'"':'')+'>'+
@@ -645,9 +658,10 @@ async function saveSale(fd,sale){
   var o=$('#f-product').selectedOptions[0];
   var unit=(sale&&pid===sale.productId)?Number(sale.unitPrice):Number(o.dataset.price);
   var prod=S.inv.filter(function(p){return p.id===pid})[0];
+  var unitCost=(sale&&pid===sale.productId&&sale.unitCost!=null)?Number(sale.unitCost):(o.dataset.cost===''?null:Number(o.dataset.cost));
   if(prod){var a=avail(prod,sale&&sale.id);if(qty>a)return 'Solo hay '+a+' disponibles de este producto.'}
   if(cents(disc)>cents(unit)*qty)return 'El descuento no puede ser mayor al total.';
-  var data={customer:customer,date:date,productId:pid,productName:o.dataset.name,productModel:o.dataset.model,unitPrice:unit,qty:qty,discount:disc,commission:comm,
+  var data={customer:customer,date:date,productId:pid,productName:o.dataset.name,productModel:o.dataset.model,unitPrice:unit,unitCost:unitCost,qty:qty,discount:disc,commission:comm,
     seller:String(fd.get('seller')||'').trim(),payment:String(fd.get('payment')||'').trim(),channel:fd.get('channel'),guide:String(fd.get('guide')||'').trim(),
     holder:fd.get('holder')||'Importoys',doc:fd.get('doc')||'Nada',createdAt:sale?(sale.createdAt||Date.now()):Date.now()};
   var ref=sale?S.db.doc('sales/'+sale.id):S.db.collection('sales').doc();
@@ -662,14 +676,16 @@ function openInv(id){
   var html='<form id="f" data-kind="inv" novalidate>'+
     '<div class="fld"><label for="f-name">Nombre del producto</label><input id="f-name" name="name" type="text" autocomplete="off" value="'+esc(v.name)+'"></div>'+
     '<div class="fld"><label for="f-model">Modelo</label><input id="f-model" name="model" type="text" autocomplete="off" value="'+esc(v.model)+'"></div>'+
-    '<div class="grid2"><div class="fld"><label for="f-price">Precio ($)</label><input id="f-price" name="price" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(v.price)+'"></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-cost">Precio de compra ($)</label><input id="f-cost" name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(v.cost==null?'':v.cost)+'"></div>'+
+    '<div class="fld"><label for="f-price">Precio de venta ($)</label><input id="f-price" name="price" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(v.price)+'"></div>'+
     '<div class="fld"><label for="f-iqty">Cantidad</label><input id="f-iqty" name="qty" type="number" inputmode="numeric" min="0" step="1" value="'+esc(v.qty)+'"></div></div>'+formFoot()+'</form>';
   openSheet(p?'Editar producto':'Nuevo producto',html,async function(fd){
     var name=String(fd.get('name')||'').trim(),price=num(fd.get('price')),qty=parseInt(fd.get('qty'),10);
     if(!name)return 'Escribe el nombre del producto.';
-    if(fd.get('price')===''||price<0)return 'Escribe el precio.';
+    if(fd.get('cost')===''||num(fd.get('cost'))<0)return 'Escribe el precio de compra.';
+    if(fd.get('price')===''||price<0)return 'Escribe el precio de venta.';
     if(!(qty>=0))return 'Escribe la cantidad (0 o más).';
-    var data={name:name,model:String(fd.get('model')||'').trim(),price:price,qty:qty,createdAt:p?(p.createdAt||Date.now()):Date.now()};
+    var data={name:name,model:String(fd.get('model')||'').trim(),price:price,cost:num(fd.get('cost')),qty:qty,createdAt:p?(p.createdAt||Date.now()):Date.now()};
     var ref=p?S.db.doc('inventory/'+p.id):S.db.collection('inventory').doc();
     try{await retry(function(){return ref.set(data)})}catch(e){return errMsg(e)}
     toast(p?'Producto actualizado':'Producto guardado');return null;
