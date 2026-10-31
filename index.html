@@ -170,6 +170,17 @@ details[open]>summary::after{content:"–"}
 .iva-pay b{font-size:19px;font-weight:500}
 .iva-pay small{color:var(--muted);font-size:12px}
 .iva-hint{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.monthbar{display:grid;gap:4px;margin-bottom:12px}
+.monthbar>.stat{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:0;padding:14px;text-align:left;cursor:pointer;color:inherit}
+.mrow+.mrow{border-top:1px solid var(--line)}
+.mrow:hover{background:var(--surface2)}
+.mname{display:grid;gap:2px;min-width:0}
+.mname b{font-family:var(--f-display);font-size:16.5px;font-weight:600}
+.mname small,.mval small{color:var(--muted);font-size:12.5px;font-weight:400}
+.mval{display:grid;gap:2px;text-align:right;font-size:16px;font-weight:500;flex:0 0 auto}
+.mtotal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 4px 0;font-size:13.5px;color:var(--muted)}
+.mtotal .num{color:var(--ink);font-weight:500}
 .row-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 
 .sheet{position:fixed;inset:0;z-index:50;display:grid;align-items:end;justify-items:center;background:rgba(10,14,22,.5);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}
@@ -267,7 +278,7 @@ var costKnown=function(s){if(s.unitCost!=null)return true;return S.inv.some(func
 var plural=function(n,a,b){return n+' '+(n===1?a:b)};
 
 var S={db:null,err:null,inv:[],sales:[],exp:[],cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,cred:false,pac:false},credit:{},creditDocs:[],pac:{},restore:null,
-  tab:'ventas',hf:'all',q:'',liq:null,open:new Set(),del:null,copy:null};
+  tab:'ventas',month:null,reveal:true,hf:'all',q:'',liq:null,open:new Set(),del:null,copy:null};
 
 /* ---------- datos ---------- */
 function retry(fn){return fn().catch(function(e){
@@ -297,6 +308,17 @@ async function init(){
 /* ---------- cálculos ---------- */
 function sold(pid,exceptId){var t=0;S.sales.forEach(function(s){if(s.productId===pid&&s.id!==exceptId)t+=parseInt(s.qty,10)||0});return t}
 function avail(p,exceptId){return (parseInt(p.qty,10)||0)-sold(p.id,exceptId)}
+function monthSel(){var m=allMonths();if(S.month==='all')return 'all';if(S.month&&m.indexOf(S.month)>=0)return S.month;return m[0]||'all'}
+function mshort(k){var p=String(k).split('-');return (MONTHS[+p[1]-1]||k).slice(0,3)+' '+p[0]}
+function monthBar(kind){
+  var ms=allMonths();if(!ms.length)return '';
+  var sel=monthSel(),tot={};
+  if(kind==='gastos')allExp().forEach(function(e){var k=mkey(e.date);tot[k]=(tot[k]||0)+cents(e.amount)});
+  else S.sales.forEach(function(s){var k=mkey(s.date);tot[k]=(tot[k]||0)+net(s)});
+  return '<div class="monthbar"><span class="stat">Meses registrados</span><div class="chips" role="group" aria-label="Meses registrados">'+
+    '<button type="button" class="chip'+(sel==='all'?' on':'')+'" aria-pressed="'+(sel==='all')+'" data-a="month" data-v="all">Todos</button>'+
+    ms.map(function(k){return '<button type="button" class="chip'+(sel===k?' on':'')+'" aria-pressed="'+(sel===k)+'" data-a="month" data-v="'+k+'">'+mshort(k)+' <span class="num">'+money(tot[k]||0)+'</span></button>'}).join('')+'</div></div>';
+}
 function allMonths(){var m={};S.sales.forEach(function(s){if(s.date)m[mkey(s.date)]=1});allExp().forEach(function(e){if(e.date)m[mkey(e.date)]=1});return Object.keys(m).sort().reverse()}
 function cmpSale(a,b){return String(b.date).localeCompare(String(a.date))||(b.createdAt||0)-(a.createdAt||0)}
 
@@ -368,7 +390,11 @@ function render(){
   var h;
   if(!ready())h='<div class="empty"><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
   else h=S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='resumen'?viewSummary():viewLiq();
+  var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   view.innerHTML=h;
+  var sc1=view.querySelector('.monthbar .chips');
+  if(sc1){sc1.scrollLeft=sl0;if(S.reveal){var on1=sc1.querySelector('.chip.on');if(on1)sc1.scrollLeft=Math.max(0,sc1.scrollLeft+on1.getBoundingClientRect().left-sc1.getBoundingClientRect().left-(sc1.clientWidth-on1.offsetWidth)/2)}}
+  S.reveal=false;
   if(keep){var el=document.getElementById(keep.id);if(el){el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(_){}}}
 }
 
@@ -391,21 +417,22 @@ function saleRow(s){
   '</article>';
 }
 function viewSales(){
-  var q=S.q.trim().toLowerCase();
+  var q=S.q.trim().toLowerCase(),mo=monthSel();
   var list=S.sales.filter(function(s){
+    if(mo!=='all'&&mkey(s.date)!==mo)return false;
     if(S.hf!=='all'&&s.holder!==S.hf)return false;
     return !q||[s.customer,s.guide,s.seller,s.productName,s.productModel].join(' ').toLowerCase().indexOf(q)>=0;
   }).sort(cmpSale);
   var totals={all:0};HOLDERS.forEach(function(h){totals[h]=0});
-  S.sales.forEach(function(s){var v=net(s);totals.all+=v;totals[HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega']+=v});
-  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+plural(S.sales.length,'venta registrada','ventas registradas')+' · '+money(totals.all)+'</p></div><button class="btn" data-a="new-sale">+ Nueva venta</button></div>';
+  var cnt=0;S.sales.filter(function(s){return mo==='all'||mkey(s.date)===mo}).forEach(function(s){cnt++;var v=net(s);totals.all+=v;totals[HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega']+=v});
+  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt,mo==='all'?'venta registrada':'venta',mo==='all'?'ventas registradas':'ventas')+' · '+money(totals.all)+'</p></div><button class="btn" data-a="new-sale">+ Nueva venta</button></div>';
   if(!S.sales.length){
     return h+'<div class="empty"><strong>Aún no hay ventas</strong><span>'+(S.inv.length?'Registra la primera con «Nueva venta». El producto sale de tu inventario.':'Primero agrega tus productos en Inventario; después podrás venderlos aquí.')+'</span>'+(S.inv.length?'':'<button class="btn ghost" data-a="tab" data-v="inventario">Ir a Inventario</button>')+'</div>';
   }
-  h+='<div class="tools"><input id="q" type="search" placeholder="Buscar cliente, guía, vendedor o producto" aria-label="Buscar ventas" value="'+esc(S.q)+'" autocomplete="off">'+
+  h+=monthBar('ventas')+'<div class="tools"><input id="q" type="search" placeholder="Buscar cliente, guía, vendedor o producto" aria-label="Buscar ventas" value="'+esc(S.q)+'" autocomplete="off">'+
     '<div class="chips">'+[['all','Todas']].concat(HOLDERS.map(function(x){return [x,x]})).map(function(c){
       return '<button type="button" class="chip'+(S.hf===c[0]?' on':'')+'" data-a="hf" data-v="'+c[0]+'">'+c[1]+' <span class="num">'+money(totals[c[0]])+'</span></button>'}).join('')+'</div></div>';
-  if(!list.length)return h+'<div class="empty"><strong>Sin resultados</strong><span>Ninguna venta coincide con la búsqueda o el filtro.</span></div>';
+  if(!list.length)return h+'<div class="empty"><strong>Sin resultados</strong><span>Ninguna venta coincide con el mes, la búsqueda o el filtro.</span></div>';
   var cur=null,buf=[];
   var flush=function(){
     if(cur===null)return;
@@ -469,12 +496,13 @@ function taxExpenses(){
   });
   return out;
 }
-function ivaSection(){
+function ivaSection(only){
   var m=taxByMonth(),keys={};
   S.sales.forEach(function(s){if(s.date)keys[mkey(s.date)]=1});
   Object.keys(S.credit).forEach(function(k){keys[k]=1});
   Object.keys(S.pac).forEach(function(k){keys[k]=1});
   keys[today().slice(0,7)]=1;
+  if(only&&only!=='all'){keys={};keys[only]=1}
   var rows=Object.keys(keys).sort().reverse().map(function(k){
     var t=monthTax(k,m[k]),pm=cents(S.pac[k]),pk=prevKey(k),pt=monthTax(pk,m[pk]),pleft=pt.left;
     var hint=(pleft>0&&pleft!==t.cr)?'<p class="iva-hint">Del mes anterior sobraron '+money(pleft)+'. <button type="button" class="lk" data-a="use-credit" data-k="'+k+'" data-v="'+pleft+'">Usar este valor</button></p>':'';
@@ -488,15 +516,16 @@ function ivaSection(){
 }
 function allExp(){return S.exp.concat(taxExpenses())}
 function viewExp(){
-  var all=allExp();
+  var every=allExp(),mo=monthSel(),all=mo==='all'?every:every.filter(function(e){return mkey(e.date)===mo});
   var list=all.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date))||(b.createdAt||0)-(a.createdAt||0)});
   var tot={Importoys:0,Importshop:0};all.forEach(function(e){tot[COMPANIES.indexOf(e.who)>=0?e.who:'Importoys']+=cents(e.amount)});
-  var h='<div class="sec-head"><div><h2>Gastos</h2><p class="sub">'+plural(all.length,'gasto registrado','gastos registrados')+'</p></div><button class="btn" data-a="new-exp">+ Nuevo gasto</button></div>';
+  var h='<div class="sec-head"><div><h2>Gastos</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(all.length,mo==='all'?'gasto registrado':'gasto',mo==='all'?'gastos registrados':'gastos')+'</p></div><button class="btn" data-a="new-exp">+ Nuevo gasto</button></div>';
+  h+=monthBar('gastos');
   h+='<div class="card" style="margin-bottom:6px"><div class="trio" style="grid-template-columns:repeat(3,minmax(0,1fr));border:0">'+
     COMPANIES.map(function(c){return '<div class="h-'+c+'"><div class="lab"><i class="dot"></i>'+c+'</div><div class="val num">'+money(tot[c])+'</div></div>'}).join('')+
     '<div><div class="lab" style="color:var(--ink)">Total</div><div class="val num">'+money(tot.Importoys+tot.Importshop)+'</div></div></div></div>';
-  h+=ivaSection();
-  if(!list.length)return h+'<div class="empty" style="margin-top:14px"><strong>Sin gastos todavía</strong><span>Registra cada gasto y quién lo pagó, Importoys o Importshop. Entran al cálculo de la liquidación.</span></div>';
+  h+=ivaSection(mo);
+  if(!list.length)return h+'<div class="empty" style="margin-top:14px"><strong>'+(every.length?'Sin gastos en este mes':'Sin gastos todavía')+'</strong><span>Registra cada gasto y quién lo pagó, Importoys o Importshop. Entran al cálculo de la liquidación.</span></div>';
   h+='<div class="sec-title">Gastos por mes</div>';
   var cur=null,buf=[];
   var flush=function(){
@@ -549,11 +578,21 @@ function monthCard(k){
   });
   return h+'</section>';
 }
+function monthList(months){
+  var rows=months.map(function(k){var r=calc(k);
+    return '<button type="button" class="mrow" data-a="month" data-v="'+k+'" aria-label="Ver el detalle de '+mlabel(k)+'">'+
+      '<span class="mname"><b>'+mlabel(k)+'</b><small>'+plural(r.T.n,'venta','ventas')+' · gastos '+money(r.T.exp)+'</small></span>'+
+      '<span class="mval num">'+money(r.T.inc)+'<small>'+(r.real<0?'Pérdida':'Ganancia real')+' '+money(r.real)+'</small></span></button>'}).join('');
+  var a=calc('all');
+  return '<div class="group">'+rows+'</div><div class="mtotal"><span>Todos los meses</span><span class="num">Ventas '+money(a.T.inc)+' · real '+money(a.real)+'</span></div>';
+}
 function viewSummary(){
-  var months=allMonths();
-  var h='<div class="sec-head"><div><h2>Resumen por mes</h2><p class="sub">Ventas según quién tiene el dinero, gastos y ganancia.</p></div></div>';
+  var months=allMonths(),mo=monthSel();
+  var h='<div class="sec-head"><div><h2>Resumen por mes</h2><p class="sub">'+(mo==='all'?'Toca un mes para ver su detalle.':'Detalle de '+mlabel(mo)+'.')+'</p></div></div>';
   if(!months.length)return h+'<div class="empty"><strong>Todavía no hay datos</strong><span>Cuando registres ventas o gastos, aquí verás cada mes con su total.</span></div>';
-  return h+months.map(monthCard).join('');
+  h+=monthBar('resumen');
+  if(mo!=='all')return h+'<button type="button" class="lk" data-a="month" data-v="all" style="margin-bottom:4px">← Todos los meses</button>'+monthCard(mo);
+  return h+monthList(months);
 }
 
 /* ---------- liquidación ---------- */
@@ -726,7 +765,8 @@ document.addEventListener('click',async function(ev){
   var a=t.dataset.a,id=t.dataset.id;
   if(ev.target.tagName==='SELECT'||ev.target.tagName==='OPTION')return;
   switch(a){
-    case 'tab':S.tab=t.dataset.v;S.del=null;render();break;
+    case 'tab':S.tab=t.dataset.v;S.del=null;S.reveal=true;render();break;
+    case 'month':S.month=t.dataset.v;S.del=null;S.reveal=true;render();break;
     case 'hf':S.hf=t.dataset.v;render();break;
     case 'new-sale':openSale();break;
     case 'edit-sale':openSale(id);break;
