@@ -130,12 +130,6 @@ body{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
 .cv-home .cv-tile{min-height:100px!important;padding:14px!important;border-radius:18px!important}
 .cv-home .cv-tile strong{font-size:16px!important}
 .cv-home .cv-tile span{font-size:12px!important}
-
-.cv-home-new-sale{display:flex!important;width:100%!important;min-height:48px!important;margin:12px 0 14px!important;
- align-items:center!important;justify-content:center!important;gap:8px!important;border:0!important;border-radius:14px!important;
- background:linear-gradient(135deg,#2a9bd1,#197db8)!important;color:#fff!important;font-size:15px!important;font-weight:750!important;
- box-shadow:0 4px 12px #168bc433!important}
-.cv-home-new-sale:active{transform:scale(.98)}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -513,7 +507,7 @@ function viewHome(){
  '<button class="cv-tile cv-stock" data-a="tab" data-v="inventario"><strong>📦 Inventario</strong><span>Productos y existencias</span></button>'+
  '<button class="cv-tile cv-exp" data-a="tab" data-v="gastos"><strong>🧾 Gastos</strong><span>Control por empresa</span></button>'+
  '<button class="cv-tile cv-liq" data-a="tab" data-v="liquidacion"><strong>🧮 Liquidación</strong><span>Utilidad y repartición</span></button>'+
- '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>+'</div><button class="cv-home-new-sale" data-a="new-sale">＋ Nueva venta</button>'+
+ '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>'+
  '<div class="cv-summary"><h3>Resumen del mes</h3><label class="cv-month-label" for="cv-home-month">Consultar mes</label><select id="cv-home-month" class="cv-month-select">'+opts+'</select>'+
  '<div class="cv-stat"><span>Cantidad de productos</span><b>'+units+'</b></div><div class="cv-stat"><span>Monto total de ventas</span><b>'+money(amount)+'</b></div><div class="cv-stat"><span>Gastos totales</span><b>'+money(expt)+'</b></div>'+
  '<div class="cv-stat"><span>Gastos Importoys</span><b>'+money(expBy.Importoys)+'</b></div><div class="cv-stat"><span>Gastos Importashop</span><b>'+money(expBy.Importshop)+'</b></div><div class="cv-stat"><span>Gastos Bodega</span><b>'+money(expBy.Bodega)+'</b></div>'+
