@@ -56,27 +56,21 @@ img{max-width:100%}
 .cv-home .cv-month-label{display:block;font-size:13px;font-weight:700;color:#71869e;margin:8px 0 6px}
 .cv-home .cv-month-select{display:block;width:100%;min-height:48px;border:1px solid #bfd2e7;border-radius:12px;padding:10px 12px;background:#fff;color:#17324f;font-size:16px;margin-bottom:8px}
 
-/* UI navigation and forms: keep editing controls above bottom navigation */
-.cv-bottom-modern{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:40!important;
- display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;
- padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;background:linear-gradient(180deg,#142b43f7,#0b1d30)!important;
- border-top:1px solid #34506b!important;box-shadow:0 -5px 18px #06142625!important}
-.cv-bottom-modern button{min-width:0!important;min-height:58px!important;padding:5px 2px!important;border:1px solid transparent!important;
- border-radius:13px!important;background:transparent!important;color:#a9bfd3!important;display:flex!important;flex-direction:column!important;
- align-items:center!important;justify-content:center!important;gap:3px!important;font:600 11px/1.1 system-ui,sans-serif!important}
-.cv-bottom-modern .cv-nav-icon{width:30px;height:28px;display:flex;align-items:center;justify-content:center}
-.cv-bottom-modern .cv-nav-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.cv-bottom-modern button.active{background:#238bc1!important;color:#fff!important;border-color:#4bb3e2!important;box-shadow:0 2px 8px #138ac033!important}
-.cv-new-sale{white-space:nowrap!important;min-height:42px!important;font-size:13px!important;padding:9px 12px!important}
-.sec-head{gap:10px!important;align-items:center!important}
-#sheet{z-index:100!important}
-#sheet .panel{max-height:calc(94dvh - env(safe-area-inset-top))!important;overflow:auto!important;padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
-#sheet .form-foot{position:sticky!important;bottom:calc(0px + env(safe-area-inset-bottom))!important;z-index:5!important;
- background:var(--surface)!important;padding:10px 0 calc(8px + env(safe-area-inset-bottom))!important;
- border-top:1px solid var(--line)!important;margin-top:12px!important}
-#sheet .form-foot button{min-height:44px!important;flex:1!important}
-body{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
-@media(max-width:480px){.cv-new-sale{font-size:12px!important;padding:8px 9px!important}}
+/* Refined sales and inventory UI */
+.sales-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important}
+.sales-new{width:100%!important;min-height:48px!important;border-radius:14px!important;font-size:15px!important;font-weight:750!important;
+ background:linear-gradient(135deg,#258fca,#176fb0)!important;color:#fff!important;box-shadow:0 5px 14px #168bc42b!important}
+.inv-row{display:grid!important;grid-template-columns:64px minmax(0,1fr) auto!important;column-gap:12px!important;align-items:center!important}
+.inv-thumb{width:64px!important;height:64px!important;object-fit:cover!important;border-radius:13px!important;border:1px solid var(--line,#d4deee)!important;background:#f2f6fb!important}
+.inv-placeholder{display:flex!important;align-items:center!important;justify-content:center!important;font-size:28px!important}
+.inv-row .r-foot{grid-column:1/-1!important}
+#sheet .panel{max-height:92dvh!important;overflow-y:auto!important}
+#sheet form{display:flex!important;flex-direction:column!important;gap:12px!important}
+#sheet .fld{margin:0!important}
+#sheet input:not([type=radio]),#sheet select{min-height:46px!important;border-radius:12px!important;font-size:15px!important}
+#sheet .readout{border-radius:16px!important;padding:15px!important;background:#eaf3ff!important;border:1px solid #c8def8!important}
+#sheet .form-foot{position:sticky!important;bottom:0!important;z-index:6!important;background:var(--surface,#fff)!important;padding:12px 0!important;border-top:1px solid var(--line,#dce4ef)!important}
+.hint{display:block;color:#71839b;font-size:12px;margin-top:5px}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -462,11 +456,7 @@ function viewHome(){
  '<div class="cv-stat"><span>Dinero actual Importoys</span><b>'+money(r.P.Importoys.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Importashop</span><b>'+money(r.P.Importshop.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Bodega</span><b>'+money(r.P.Bodega.bal)+'</b></div></div></section>';
 }
 function cvBottom(){
- return '<nav class="cv-bottom cv-bottom-modern" aria-label="Navegación">'+
- '<button data-a="home" class="'+(S.tab==='home'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg></span><span>Inicio</span></button>'+
- '<button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3h2l2.2 12.2a2 2 0 0 0 2 1.6h9.3a2 2 0 0 0 1.9-1.4L22 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg></span><span>Ventas</span></button>'+
- '<button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h17"/><rect x="7" y="12" width="3" height="5" rx="1"/><rect x="12" y="8" width="3" height="9" rx="1"/><rect x="17" y="4" width="3" height="13" rx="1"/></svg></span><span>Reportes</span></button>'+
- '<button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 7h15l-3-3m3 3-3 3M20 17H5l3 3m-3-3 3-3"/></svg></span><span>Liquidación</span></button></nav>';
+ return '<nav class="cv-bottom" aria-label="Navegación"><button data-a="home" class="'+(S.tab==='home'?'active':'')+'">⌂<br>Inicio</button><button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'">🛒<br>Ventas</button><button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'">▥<br>Reportes</button><button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'">▦<br>Liquidación</button></nav>';
 }
 function render(){
   pending=false;
@@ -513,7 +503,7 @@ function viewSales(){
   }).sort(cmpSale);
   var totals={all:0};HOLDERS.forEach(function(h){totals[h]=0});
   var cnt=0;S.sales.filter(function(s){return mo==='all'||mkey(s.date)===mo}).forEach(function(s){cnt++;var v=net(s);totals.all+=v;totals[HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega']+=v});
-  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt,mo==='all'?'venta registrada':'venta',mo==='all'?'ventas registradas':'ventas')+' · '+money(totals.all)+'</p></div><button class="btn cv-new-sale" type="button" data-a="new-sale">＋ Registrar nueva venta</button></div>';
+  var h='<div class="sec-head sales-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt,mo==='all'?'venta registrada':'venta',mo==='all'?'ventas registradas':'ventas')+' · '+money(totals.all)+'</p></div><button class="btn sales-new" type="button" data-a="new-sale">＋ Registrar nueva venta</button></div>';
   if(!S.sales.length){
     return h+'<div class="empty"><strong>Aún no hay ventas</strong><span>'+(S.inv.length?'Registra la primera con «Nueva venta». El producto sale de tu inventario.':'Primero agrega tus productos en Inventario; después podrás venderlos aquí.')+'</span>'+(S.inv.length?'':'<button class="btn ghost" data-a="tab" data-v="inventario">Ir a Inventario</button>')+'</div>';
   }
@@ -540,7 +530,7 @@ function viewInv(){
   if(!list.length)return h+'<div class="empty"><strong>Tu inventario está vacío</strong><span>Agrega cada producto con su modelo, precio y cantidad. Las ventas descuentan de aquí.</span></div>';
   return h+'<div class="group">'+list.map(function(p){
     var a=avail(p),s=sold(p.id);
-    return '<article class="row"><div class="r-main"><h3>'+esc(p.name)+(p.example?'<span class="tag">Ejemplo</span>':'')+'</h3><p>'+(p.model?'Modelo '+esc(p.model):'Sin modelo')+'</p></div>'+
+    return '<article class="row inv-row">'+(p.photo?'<img class="inv-thumb" src="'+esc(p.photo)+'" alt="'+esc(p.name)+'">':'<div class="inv-thumb inv-placeholder" aria-label="Sin foto">📦</div>')+'<div class="r-main"><h3>'+esc(p.name)+(p.example?'<span class="tag">Ejemplo</span>':'')+'</h3><p>'+(p.model?'Modelo '+esc(p.model):'Sin modelo')+'</p></div>'+
       '<div class="r-amt num">'+money(cents(p.price))+(p.cost!=null?'<small>Compra '+money(cents(p.cost))+'</small>':'')+'</div>'+
       '<p class="r-meta stat">'+(p.cost==null?'<span class="pill-bad" style="margin:0 6px 0 0">Sin precio de compra</span>':'Margen <b class="num">'+money(cents(p.price)-cents(p.cost))+'</b>'+(cents(p.price)>0?' ('+Math.round((cents(p.price)-cents(p.cost))*100/cents(p.price))+'%)':'')+' · ')+'Cantidad <b class="num">'+(parseInt(p.qty,10)||0)+'</b> · Vendidas <b class="num">'+s+'</b> · Disponibles <b class="num">'+a+'</b>'+(a===0?'<span class="pill-bad">Agotado</span>':a<0?'<span class="pill-bad">Revisar cantidad</span>':'')+'</p>'+
       '<div class="r-foot"><span></span>'+actsHTML('inv',p.id)+'</div></article>';
@@ -809,7 +799,7 @@ function openInv(id){
   var v=p||{name:'',model:'',price:'',qty:''};
   var html='<form id="f" data-kind="inv" novalidate>'+
     '<div class="fld"><label for="f-name">Nombre del producto</label><input id="f-name" name="name" type="text" autocomplete="off" value="'+esc(v.name)+'"></div>'+
-    '<div class="fld"><label for="f-model">Modelo</label><input id="f-model" name="model" type="text" autocomplete="off" value="'+esc(v.model)+'"></div>'+
+    '<div class="fld"><label for="f-model">Modelo</label><input id="f-model" name="model" type="text" autocomplete="off" value="'+esc(v.model)+'"></div>'+'<div class="fld"><label for="f-photo">Foto del producto (URL)</label><input id="f-photo" name="photo" type="url" inputmode="url" placeholder="https://…/producto.jpg" value="'+esc(v.photo||'')+'"><small class="hint">Agrega una URL directa de imagen. Se mostrará en la tarjeta de inventario.</small></div>'+
     '<div class="grid2"><div class="fld"><label for="f-cost">Precio de compra ($)</label><input id="f-cost" name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(v.cost==null?'':v.cost)+'"></div>'+
     '<div class="fld"><label for="f-price">Precio de venta ($)</label><input id="f-price" name="price" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(v.price)+'"></div>'+
     '<div class="fld"><label for="f-iqty">Cantidad</label><input id="f-iqty" name="qty" type="number" inputmode="numeric" min="0" step="1" value="'+esc(v.qty)+'"></div></div>'+formFoot()+'</form>';
@@ -819,7 +809,7 @@ function openInv(id){
     if(fd.get('cost')===''||num(fd.get('cost'))<0)return 'Escribe el precio de compra.';
     if(fd.get('price')===''||price<0)return 'Escribe el precio de venta.';
     if(!(qty>=0))return 'Escribe la cantidad (0 o más).';
-    var data={name:name,model:String(fd.get('model')||'').trim(),price:price,cost:num(fd.get('cost')),qty:qty,createdAt:p?(p.createdAt||Date.now()):Date.now()};
+    var data={name:name,model:String(fd.get('model')||'').trim(),photo:String(fd.get('photo')||'').trim(),price:price,cost:num(fd.get('cost')),qty:qty,createdAt:p?(p.createdAt||Date.now()):Date.now()};
     var ref=p?S.db.doc('inventory/'+p.id):S.db.collection('inventory').doc();
     try{await retry(function(){return ref.set(data)})}catch(e){return errMsg(e)}
     toast(p?'Producto actualizado':'Producto guardado');return null;
