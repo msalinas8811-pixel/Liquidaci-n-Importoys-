@@ -211,28 +211,17 @@ details[open]>summary::after{content:"–"}
 .foot .btns{display:flex;gap:8px;flex-wrap:wrap}
 .foot .btn{font-size:13px;min-height:38px;padding:7px 12px}
 
-/* Rediseño móvil aplicado sobre la app existente: navegación en mosaico, botones táctiles y tarjetas. */
-@media(max-width:600px){
- body{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(28px,env(safe-area-inset-bottom));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px);font-size:16px}
- .app{width:100%;max-width:100%;}
- .top{grid-template-columns:minmax(92px,38%) minmax(0,1fr);gap:10px 12px;padding:8px 0 14px}
- .brand{border-radius:18px;padding:5px;align-items:center;justify-content:center;min-width:0}
- .logo{max-height:112px;max-width:100%;object-fit:contain}
- .top h1{font-size:clamp(22px,6vw,30px);line-height:1.12;overflow-wrap:anywhere}
- .legend{font-size:11px;gap:8px 12px;letter-spacing:.04em}
- .stripe{height:5px;margin:2px 0 16px}
- .tabs{position:relative;top:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;overflow:visible;border:0;margin:0 0 18px;background:transparent;padding:0}
- .tabs button{min-width:0;white-space:normal;min-height:58px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 8px;margin:0;font-size:15px;font-weight:650;line-height:1.15;color:var(--muted);box-shadow:0 2px 0 rgba(0,0,0,.04)}
- .tabs button.on{border:2px solid var(--brand);background:var(--surface2);color:var(--brand);border-bottom-width:2px}
- .sec-head{align-items:center;gap:10px}
- .sec-head h2{font-size:25px}
- .btn{min-height:54px!important;border-radius:14px!important;padding:13px 17px!important;font-size:16px!important}
- .btns{gap:9px}
- .btns>.btn{flex:1 1 calc(50% - 9px);min-width:130px}
- input,select,textarea{font-size:16px!important;min-height:48px}
- .card,.sale,.month,.panel{border-radius:16px}
-}
-@media(min-width:601px){.tabs button{font-size:14px;padding:14px 9px}}
+/* Dashboard táctil con tarjetas grandes, inspirado en SaludPlus */
+.home-panel{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px;margin:6px 0 20px;box-shadow:0 10px 28px rgba(22,45,90,.08)}
+.home-intro{padding:2px 2px 16px}.home-intro small{display:block;color:var(--muted);font-size:13px;font-weight:600}.home-intro h2{font-size:23px;margin:5px 0}.home-intro p{color:var(--muted);font-size:14px}
+.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home-tile{position:relative;display:flex;align-items:center;gap:10px;text-align:left;min-height:126px;padding:15px 12px;border:1px solid rgba(18,35,74,.18);border-radius:20px;color:white;cursor:pointer;box-shadow:0 5px 12px rgba(17,35,74,.12);overflow:hidden}
+.home-tile.blue{background:linear-gradient(135deg,#3979d0,#24539a)}.home-tile.green{background:linear-gradient(135deg,#35a17a,#147b60)}.home-tile.orange{background:linear-gradient(135deg,#e59b36,#b96b1b)}.home-tile.purple{background:linear-gradient(135deg,#9764d5,#6941a8)}.home-tile.pink{background:linear-gradient(135deg,#d15b91,#a33c70)}
+.tile-icon{flex:0 0 42px;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);font-size:25px}.tile-copy{min-width:0;display:flex;flex-direction:column;gap:5px}.tile-copy strong{font-size:16px;line-height:1.15}.tile-copy small{font-size:12px;line-height:1.3;color:rgba(255,255,255,.92)}.tile-arrow{font-size:25px;margin-left:auto;align-self:center}
+.home-new{width:100%;min-height:62px;margin-top:14px;border:0;border-radius:18px;background:var(--brand);color:var(--brand-ink);font-size:19px;font-weight:700;cursor:pointer}.home-summary{display:flex;justify-content:space-between;gap:12px;margin-top:14px;padding:15px;border:1px solid var(--line);border-radius:17px;background:var(--surface2)}.home-summary>div{display:flex;flex-direction:column;gap:4px}.home-summary small{color:var(--muted);font-size:12px}.home-summary strong{font-size:20px}
+.tabs button{font-size:14px;min-height:48px;padding:13px 12px;flex:0 0 auto}
+@media(max-width:420px){.home-panel{padding:13px;border-radius:20px}.home-grid{gap:9px}.home-tile{min-height:116px;padding:12px 9px;gap:8px;border-radius:17px}.tile-icon{flex-basis:36px;width:36px;height:36px;font-size:22px}.tile-copy strong{font-size:14px}.tile-copy small{font-size:11px}.tile-arrow{font-size:22px}.home-summary strong{font-size:17px}}
+@media(min-width:600px){.home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-tile{min-height:140px;padding:20px}.tile-icon{width:54px;height:54px;flex-basis:54px;font-size:30px}.tile-copy strong{font-size:20px}.tile-copy small{font-size:14px}}
 </style>
 </head>
 <body>
@@ -281,7 +270,7 @@ var COMPANIES=['Importoys','Importshop'];
 var CHANNELS=['Tienda','Express de El Salvador','Aeromall de El Salvador'];
 var PAYS=['Efectivo','Transferencia','Tarjeta','Contra entrega'];
 var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var TABS=[['ventas','Ventas'],['inventario','Inventario'],['gastos','Gastos'],['resumen','Resumen'],['liquidacion','Liquidación']];
+var TABS=[['inicio','Inicio'],['ventas','Ventas'],['inventario','Inventario'],['gastos','Gastos'],['resumen','Resumen'],['liquidacion','Liquidación']];
 
 var $=function(s){return document.querySelector(s)};
 var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
@@ -412,13 +401,20 @@ function render(){
   $('#banner').innerHTML=bannerHTML();
   var h;
   if(!ready())h='<div class="empty"><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
-  else h=S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='resumen'?viewSummary():viewLiq();
+  else h=S.tab==='inicio'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='resumen'?viewSummary():viewLiq();
   var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   view.innerHTML=h;
   var sc1=view.querySelector('.monthbar .chips');
   if(sc1){sc1.scrollLeft=sl0;if(S.reveal){var on1=sc1.querySelector('.chip.on');if(on1)sc1.scrollLeft=Math.max(0,sc1.scrollLeft+on1.getBoundingClientRect().left-sc1.getBoundingClientRect().left-(sc1.clientWidth-on1.offsetWidth)/2)}}
   S.reveal=false;
   if(keep){var el=document.getElementById(keep.id);if(el){el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(_){}}}
+}
+
+/* ---------- inicio / accesos directos estilo SaludPlus ---------- */
+function viewHome(){
+ var count=S.sales.length, total=S.sales.reduce(function(a,x){return a+net(x)},0);
+ var tiles=[['ventas','🛒','Ventas','Registrar y consultar ventas','blue'],['inventario','📦','Inventario','Productos, stock y movimientos','green'],['gastos','🧾','Gastos','Control de gastos por empresa','orange'],['liquidacion','🧮','Liquidación','Cálculo de utilidad y repartición','purple'],['resumen','📊','Reportes','Resumen y resultados','pink']];
+ return '<section class="home-panel"><div class="home-intro"><small>Accesos directos</small><h2>¿Qué deseas hacer?</h2><p>Toca una tarjeta para abrir la función.</p></div><div class="home-grid">'+tiles.map(function(t){return '<button class="home-tile '+t[4]+'" type="button" data-a="tab" data-v="'+t[0]+'"><span class="tile-icon">'+t[1]+'</span><span class="tile-copy"><strong>'+t[2]+'</strong><small>'+t[3]+'</small></span><span class="tile-arrow">›</span></button>'}).join('')+'</div><button class="home-new" type="button" data-a="new-sale">＋ Nueva venta</button><div class="home-summary"><div><small>Ventas registradas</small><strong>'+count+'</strong></div><div><small>Total de ventas</small><strong class="num">'+money(total)+'</strong></div></div></section>';
 }
 
 /* ---------- ventas ---------- */
