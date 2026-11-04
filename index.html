@@ -52,6 +52,9 @@ img{max-width:100%}
 .cv-home .cv-summary h3{font-size:16px;margin:0 0 10px;color:#17324f}
 .cv-home .cv-stat{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #d0deed;font-size:14px}
 .cv-home .cv-stat b{font-variant-numeric:tabular-nums;text-align:right;color:#17324f}
+
+.cv-home .cv-month-label{display:block;font-size:13px;font-weight:700;color:#71869e;margin:8px 0 6px}
+.cv-home .cv-month-select{display:block;width:100%;min-height:48px;border:1px solid #bfd2e7;border-radius:12px;padding:10px 12px;background:#fff;color:#17324f;font-size:16px;margin-bottom:8px}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -415,13 +418,21 @@ function bannerHTML(){
 
 
 function viewHome(){
- var now=new Date(),ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
- var sales=(S.sales||[]).filter(function(x){return String(x.date||'').slice(0,7)===ym});
+ var now=new Date(),current=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+ var allSales=S.sales||[], allExpenses=allExp();
+ var months={};
+ allSales.concat(allExpenses).forEach(function(x){var k=String(x.date||'').slice(0,7);if(/^\d{4}-\d{2}$/.test(k))months[k]=true});
+ if(!months[current])months[current]=true;
+ var keys=Object.keys(months).sort().reverse();
+ var selected=S.homeMonth&&months[S.homeMonth]?S.homeMonth:keys[0];
+ S.homeMonth=selected;
+ var sales=allSales.filter(function(x){return String(x.date||'').slice(0,7)===selected});
  var salesAmount=0,units=0,holder={Importoys:0,Importshop:0,Bodega:0};
- sales.forEach(function(s){salesAmount+=net(s);units+=Math.max(0,parseInt(s.qty,10)||0);var who=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';holder[who]+=net(s)});
- var expenses=allExp().filter(function(e){return String(e.date||'').slice(0,7)===ym});
+ sales.forEach(function(s){var amount=net(s);salesAmount+=amount;units+=Math.max(0,parseInt(s.qty,10)||0);var who=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';holder[who]+=amount});
+ var expenses=allExpenses.filter(function(e){return String(e.date||'').slice(0,7)===selected});
  var expTotal=expenses.reduce(function(a,e){return a+cents(e.amount)},0);
- var monthName=MONTHS[now.getMonth()]+' '+now.getFullYear();
+ var label=selected.split('-')[1]+'/'+selected.split('-')[0];
+ var opts=keys.map(function(k){return '<option value="'+k+'" '+(k===selected?'selected':'')+'>'+mlabel(k)+'</option>'}).join('');
  return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p>'+
  '<div class="cv-grid">'+
  '<button class="cv-tile cv-sales" data-a="tab" data-v="ventas"><strong>🛒 Ventas</strong><span>Registrar y consultar ventas</span></button>'+
@@ -429,7 +440,7 @@ function viewHome(){
  '<button class="cv-tile cv-exp" data-a="tab" data-v="gastos"><strong>🧾 Gastos</strong><span>Control por empresa</span></button>'+
  '<button class="cv-tile cv-liq" data-a="tab" data-v="liquidacion"><strong>🧮 Liquidación</strong><span>Utilidad y repartición</span></button>'+
  '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>'+
- '<div class="cv-summary"><h3>Resumen del mes · '+esc(monthName)+'</h3>'+
+ '<div class="cv-summary"><h3>Resumen del mes</h3><label class="cv-month-label" for="cv-home-month">Mes guardado</label><select id="cv-home-month" class="cv-month-select">'+opts+'</select>'+
  '<div class="cv-stat"><span>Cantidad de productos vendidos</span><b>'+units+'</b></div>'+
  '<div class="cv-stat"><span>Monto total de ventas</span><b>'+money(salesAmount)+'</b></div>'+
  '<div class="cv-stat"><span>Gastos totales</span><b>'+money(expTotal)+'</b></div>'+
@@ -820,6 +831,7 @@ function openExp(id){
 
 /* ---------- eventos ---------- */
 var COL={sale:'sales',inv:'inventory',exp:'expenses'};
+document.addEventListener('change',function(ev){if(ev.target&&ev.target.id==='cv-home-month'){S.homeMonth=ev.target.value;render();}});
 document.addEventListener('click',async function(ev){
   var t=ev.target.closest('[data-a]');if(!t)return;
   var a=t.dataset.a,id=t.dataset.id;
