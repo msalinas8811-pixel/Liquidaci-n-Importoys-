@@ -476,6 +476,16 @@ details[open] summary::after{transform:rotate(-135deg)}
 }
 .rtable.sm{width:auto}
 @media print{.narrow.w2{max-width:none}.narrow.w2 .tscroll{overflow:visible}}
+@media print{
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+  .app,.main,#view,.side{display:block!important;height:auto!important;min-height:0!important;overflow:visible!important;position:static!important}
+  .card,.rep,.tscroll,.narrow{overflow:visible!important;break-inside:auto!important}
+  .card{border-radius:0;border:1px solid #ccc;box-shadow:none}
+  .rtable{display:table;width:100%}.rtable.sm{width:auto}
+  .rtable tfoot{display:table-row-group}
+  #view.fresh>*{animation:none!important}
+  .sec-title{break-after:avoid}
+}
 </style>
 </head>
 <body>
