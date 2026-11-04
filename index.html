@@ -418,35 +418,26 @@ function bannerHTML(){
 
 
 function viewHome(){
- var now=new Date(),current=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
- var allSales=S.sales||[], allExpenses=allExp();
- var months={};
- allSales.concat(allExpenses).forEach(function(x){var k=String(x.date||'').slice(0,7);if(/^\d{4}-\d{2}$/.test(k))months[k]=true});
- if(!months[current])months[current]=true;
- var keys=Object.keys(months).sort().reverse();
- var selected=S.homeMonth&&months[S.homeMonth]?S.homeMonth:keys[0];
- S.homeMonth=selected;
- var sales=allSales.filter(function(x){return String(x.date||'').slice(0,7)===selected});
- var salesAmount=0,units=0,holder={Importoys:0,Importshop:0,Bodega:0};
- sales.forEach(function(s){var amount=net(s);salesAmount+=amount;units+=Math.max(0,parseInt(s.qty,10)||0);var who=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';holder[who]+=amount});
- var expenses=allExpenses.filter(function(e){return String(e.date||'').slice(0,7)===selected});
- var expTotal=expenses.reduce(function(a,e){return a+cents(e.amount)},0);
- var label=selected.split('-')[1]+'/'+selected.split('-')[0];
- var opts=keys.map(function(k){return '<option value="'+k+'" '+(k===selected?'selected':'')+'>'+mlabel(k)+'</option>'}).join('');
- return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p>'+
- '<div class="cv-grid">'+
+ var now=new Date(),cur=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'),ss=S.sales||[],ee=allExp(),months={};
+ ss.concat(ee).forEach(function(x){var k=String(x.date||'').slice(0,7);if(/^\d{4}-\d{2}$/.test(k))months[k]=1});
+ if(!months[cur])months[cur]=1;var keys=Object.keys(months).sort().reverse(),key=S.homeMonth&&months[S.homeMonth]?S.homeMonth:keys[0];S.homeMonth=key;
+ var sales=ss.filter(function(x){return String(x.date||'').slice(0,7)===key}),exp=ee.filter(function(x){return String(x.date||'').slice(0,7)===key});
+ var units=sales.reduce(function(a,x){return a+(parseInt(x.qty,10)||0)},0),amount=sales.reduce(function(a,x){return a+net(x)},0),expt=exp.reduce(function(a,x){return a+cents(x.amount)},0);
+ var r=calc(key),expBy={Importoys:0,Importshop:0,Bodega:0};
+ exp.forEach(function(x){var who=HOLDERS.indexOf(x.holder)>=0?x.holder:(HOLDERS.indexOf(x.company)>=0?x.company:'Bodega');expBy[who]+=cents(x.amount)});
+ var opts=keys.map(function(k){return '<option value="'+k+'" '+(k===key?'selected':'')+'>'+mlabel(k)+'</option>'}).join('');
+ var pays=r.pays.length?r.pays.map(function(p){return '<div class="cv-stat"><span>'+p.from+' paga a '+p.to+'</span><b>'+money(p.amt)+'</b></div>'}).join():'<div class="cv-stat"><span>No hay pagos pendientes</span><b>Al día</b></div>';
+ return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p><div class="cv-grid">'+
  '<button class="cv-tile cv-sales" data-a="tab" data-v="ventas"><strong>🛒 Ventas</strong><span>Registrar y consultar ventas</span></button>'+
  '<button class="cv-tile cv-stock" data-a="tab" data-v="inventario"><strong>📦 Inventario</strong><span>Productos y existencias</span></button>'+
  '<button class="cv-tile cv-exp" data-a="tab" data-v="gastos"><strong>🧾 Gastos</strong><span>Control por empresa</span></button>'+
  '<button class="cv-tile cv-liq" data-a="tab" data-v="liquidacion"><strong>🧮 Liquidación</strong><span>Utilidad y repartición</span></button>'+
  '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>'+
- '<div class="cv-summary"><h3>Resumen del mes</h3><label class="cv-month-label" for="cv-home-month">Mes guardado</label><select id="cv-home-month" class="cv-month-select">'+opts+'</select>'+
- '<div class="cv-stat"><span>Cantidad de productos vendidos</span><b>'+units+'</b></div>'+
- '<div class="cv-stat"><span>Monto total de ventas</span><b>'+money(salesAmount)+'</b></div>'+
- '<div class="cv-stat"><span>Gastos totales</span><b>'+money(expTotal)+'</b></div>'+
- '<div class="cv-stat"><span>Dinero en Importoys</span><b>'+money(holder.Importoys)+'</b></div>'+
- '<div class="cv-stat"><span>Dinero en Importashop</span><b>'+money(holder.Importshop)+'</b></div>'+
- '<div class="cv-stat"><span>Dinero en Bodega</span><b>'+money(holder.Bodega)+'</b></div></div></section>';
+ '<div class="cv-summary"><h3>Resumen del mes</h3><label class="cv-month-label" for="cv-home-month">Consultar mes</label><select id="cv-home-month" class="cv-month-select">'+opts+'</select>'+
+ '<div class="cv-stat"><span>Cantidad de productos</span><b>'+units+'</b></div><div class="cv-stat"><span>Monto total de ventas</span><b>'+money(amount)+'</b></div><div class="cv-stat"><span>Gastos totales</span><b>'+money(expt)+'</b></div>'+
+ '<div class="cv-stat"><span>Gastos Importoys</span><b>'+money(expBy.Importoys)+'</b></div><div class="cv-stat"><span>Gastos Importashop</span><b>'+money(expBy.Importshop)+'</b></div><div class="cv-stat"><span>Gastos Bodega</span><b>'+money(expBy.Bodega)+'</b></div>'+
+ '<h3 style="margin-top:14px">Liquidación · quién paga a quién</h3>'+pays+
+ '<div class="cv-stat"><span>Dinero actual Importoys</span><b>'+money(r.P.Importoys.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Importashop</span><b>'+money(r.P.Importshop.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Bodega</span><b>'+money(r.P.Bodega.bal)+'</b></div></div></section>';
 }
 function cvBottom(){
  return '<nav class="cv-bottom" aria-label="Navegación"><button data-a="home" class="'+(S.tab==='home'?'active':'')+'">⌂<br>Inicio</button><button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'">🛒<br>Ventas</button><button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'">▥<br>Reportes</button><button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'">▦<br>Liquidación</button></nav>';
