@@ -424,7 +424,7 @@ function viewHome(){
  var sales=ss.filter(function(x){return String(x.date||'').slice(0,7)===key}),exp=ee.filter(function(x){return String(x.date||'').slice(0,7)===key});
  var units=sales.reduce(function(a,x){return a+(parseInt(x.qty,10)||0)},0),amount=sales.reduce(function(a,x){return a+net(x)},0),expt=exp.reduce(function(a,x){return a+cents(x.amount)},0);
  var r=calc(key),expBy={Importoys:0,Importshop:0,Bodega:0};
- exp.forEach(function(x){var who=HOLDERS.indexOf(x.holder)>=0?x.holder:(HOLDERS.indexOf(x.company)>=0?x.company:'Bodega');expBy[who]+=cents(x.amount)});
+ exp.forEach(function(x){var who=COMPANIES.indexOf(x.who)>=0?x.who:(COMPANIES.indexOf(x.company)>=0?x.company:'Importoys');expBy[who]+=cents(x.amount)});
  var opts=keys.map(function(k){return '<option value="'+k+'" '+(k===key?'selected':'')+'>'+mlabel(k)+'</option>'}).join('');
  var pays=r.pays.length?r.pays.map(function(p){return '<div class="cv-stat"><span>'+p.from+' paga a '+p.to+'</span><b>'+money(p.amt)+'</b></div>'}).join():'<div class="cv-stat"><span>No hay pagos pendientes</span><b>Al día</b></div>';
  return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p><div class="cv-grid">'+
