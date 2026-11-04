@@ -20,6 +20,33 @@ html,body{height:auto}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
+
+/* Inicio nuevo: elimina menú horizontal superior */
+#tabs{display:none!important}
+.cv-home{margin:12px 0 24px;padding:18px;background:#f7faff;color:#19314d;border:1px solid #d8e4f1;border-radius:24px}
+.cv-home .cv-eyebrow{font-size:13px;font-weight:700;color:#7b8da5;margin:0 0 5px}
+.cv-home h2{font-size:23px;margin:0 0 8px;color:#17324f}
+.cv-home .cv-desc{font-size:14px;color:#70839b;margin:0 0 16px}
+.cv-home .cv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cv-home .cv-tile{min-height:126px;border:1px solid #d5e2f1;border-radius:20px;padding:16px;text-align:left;color:white;font-weight:700;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 5px 13px #183d621c}
+.cv-home .cv-tile span{font-size:15px;font-weight:500;opacity:.92}
+.cv-home .cv-tile strong{font-size:19px}
+.cv-home .cv-sales{background:linear-gradient(135deg,#3975c6,#24518d)}
+.cv-home .cv-stock{background:linear-gradient(135deg,#20a88d,#147c70)}
+.cv-home .cv-exp{background:linear-gradient(135deg,#e99b38,#c56c21)}
+.cv-home .cv-liq{background:linear-gradient(135deg,#8b55cf,#6036a5)}
+.cv-home .cv-report{background:linear-gradient(135deg,#d65d7c,#a83f66)}
+.cv-home .cv-summary{margin-top:16px;padding:15px;border-radius:18px;background:#e8f1fb;border:1px solid #d1e0f2}
+.cv-home .cv-summary h3{font-size:16px;margin:0 0 10px}
+.cv-home .cv-stat{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #d0deed;font-size:14px}
+.cv-home .cv-stat b{font-variant-numeric:tabular-nums;text-align:right}
+.cv-home .cv-pay{margin-top:12px;background:#fff4e7;border:1px solid #f2d2a7;border-radius:16px;padding:14px}
+.cv-home .cv-pay strong{display:block;color:#a65c16;font-size:17px;margin-bottom:4px}
+.cv-home .cv-pay p{margin:0;color:#765c42;font-size:14px}
+.cv-bottom{display:flex;position:sticky;bottom:0;z-index:8;background:#10243b;border-top:1px solid #314760;padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));gap:6px}
+.cv-bottom button{flex:1;min-height:56px;border:0;border-radius:14px;background:transparent;color:#a9bbcf;font-weight:700;font-size:12px}
+.cv-bottom button.active{background:#2e91c8;color:white}
+@media(max-width:480px){.cv-home{padding:14px}.cv-home .cv-tile{min-height:118px;padding:13px}.cv-home .cv-tile strong{font-size:17px}}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -210,18 +237,6 @@ details[open]>summary::after{content:"–"}
 .foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:10px;font-size:12.5px;color:var(--muted)}
 .foot .btns{display:flex;gap:8px;flex-wrap:wrap}
 .foot .btn{font-size:13px;min-height:38px;padding:7px 12px}
-
-/* Dashboard táctil con tarjetas grandes, inspirado en SaludPlus */
-.home-panel{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px;margin:6px 0 20px;box-shadow:0 10px 28px rgba(22,45,90,.08)}
-.home-intro{padding:2px 2px 16px}.home-intro small{display:block;color:var(--muted);font-size:13px;font-weight:600}.home-intro h2{font-size:23px;margin:5px 0}.home-intro p{color:var(--muted);font-size:14px}
-.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.home-tile{position:relative;display:flex;align-items:center;gap:10px;text-align:left;min-height:126px;padding:15px 12px;border:1px solid rgba(18,35,74,.18);border-radius:20px;color:white;cursor:pointer;box-shadow:0 5px 12px rgba(17,35,74,.12);overflow:hidden}
-.home-tile.blue{background:linear-gradient(135deg,#3979d0,#24539a)}.home-tile.green{background:linear-gradient(135deg,#35a17a,#147b60)}.home-tile.orange{background:linear-gradient(135deg,#e59b36,#b96b1b)}.home-tile.purple{background:linear-gradient(135deg,#9764d5,#6941a8)}.home-tile.pink{background:linear-gradient(135deg,#d15b91,#a33c70)}
-.tile-icon{flex:0 0 42px;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);font-size:25px}.tile-copy{min-width:0;display:flex;flex-direction:column;gap:5px}.tile-copy strong{font-size:16px;line-height:1.15}.tile-copy small{font-size:12px;line-height:1.3;color:rgba(255,255,255,.92)}.tile-arrow{font-size:25px;margin-left:auto;align-self:center}
-.home-new{width:100%;min-height:62px;margin-top:14px;border:0;border-radius:18px;background:var(--brand);color:var(--brand-ink);font-size:19px;font-weight:700;cursor:pointer}.home-summary{display:flex;justify-content:space-between;gap:12px;margin-top:14px;padding:15px;border:1px solid var(--line);border-radius:17px;background:var(--surface2)}.home-summary>div{display:flex;flex-direction:column;gap:4px}.home-summary small{color:var(--muted);font-size:12px}.home-summary strong{font-size:20px}
-.tabs button{font-size:14px;min-height:48px;padding:13px 12px;flex:0 0 auto}
-@media(max-width:420px){.home-panel{padding:13px;border-radius:20px}.home-grid{gap:9px}.home-tile{min-height:116px;padding:12px 9px;gap:8px;border-radius:17px}.tile-icon{flex-basis:36px;width:36px;height:36px;font-size:22px}.tile-copy strong{font-size:14px}.tile-copy small{font-size:11px}.tile-arrow{font-size:22px}.home-summary strong{font-size:17px}}
-@media(min-width:600px){.home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-tile{min-height:140px;padding:20px}.tile-icon{width:54px;height:54px;flex-basis:54px;font-size:30px}.tile-copy strong{font-size:20px}.tile-copy small{font-size:14px}}
 </style>
 </head>
 <body>
@@ -270,7 +285,7 @@ var COMPANIES=['Importoys','Importshop'];
 var CHANNELS=['Tienda','Express de El Salvador','Aeromall de El Salvador'];
 var PAYS=['Efectivo','Transferencia','Tarjeta','Contra entrega'];
 var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var TABS=[['inicio','Inicio'],['ventas','Ventas'],['inventario','Inventario'],['gastos','Gastos'],['resumen','Resumen'],['liquidacion','Liquidación']];
+var TABS=[['ventas','Ventas'],['inventario','Inventario'],['gastos','Gastos'],['resumen','Resumen'],['liquidacion','Liquidación']];
 
 var $=function(s){return document.querySelector(s)};
 var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
@@ -393,6 +408,31 @@ function bannerHTML(){
   return h;
 }
 
+
+function viewHome(){
+ var now=new Date(),ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+ var sales=(S.sales||[]).filter(function(x){return String(x.date||'').slice(0,7)===ym});
+ var total=sales.reduce(function(a,x){return a+cents(x.total||0)},0);
+ var byHolder={Importoys:0,Importshop:0,Bodega:0};
+ sales.forEach(function(x){var who=x.holder||x.who||'Importoys';if(byHolder.hasOwnProperty(who))byHolder[who]+=cents(x.total||0)});
+ var monthName=MONTHS[now.getMonth()]+' '+now.getFullYear();
+ var pay=Math.max(0,byHolder.Importoys-byHolder.Importshop);
+ return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p>'+
+ '<div class="cv-grid">'+
+ '<button class="cv-tile cv-sales" data-a="tab" data-v="ventas"><strong>🛒 Ventas</strong><span>Registrar y consultar ventas</span></button>'+
+ '<button class="cv-tile cv-stock" data-a="tab" data-v="inventario"><strong>📦 Inventario</strong><span>Productos y existencias</span></button>'+
+ '<button class="cv-tile cv-exp" data-a="tab" data-v="gastos"><strong>🧾 Gastos</strong><span>Control por empresa</span></button>'+
+ '<button class="cv-tile cv-liq" data-a="tab" data-v="liquidacion"><strong>🧮 Liquidación</strong><span>Utilidad y repartición</span></button>'+
+ '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>'+
+ '<div class="cv-summary"><h3>Resumen del último mes · '+esc(monthName)+'</h3>'+
+ '<div class="cv-stat"><span>Cantidad de ventas</span><b>'+sales.length+'</b></div>'+
+ '<div class="cv-stat"><span>Monto de ventas</span><b>'+money(total)+'</b></div>'+
+ '<div class="cv-stat"><span>Liquidación pendiente</span><b>'+money(pay)+'</b></div></div>'+
+ '<div class="cv-pay"><strong>Importoys paga a Importashop</strong><p>Importoys debe transferir a Importashop: <b>'+money(pay)+'</b></p></div></section>';
+}
+function cvBottom(){
+ return '<nav class="cv-bottom" aria-label="Navegación"><button data-a="home" class="'+(S.tab==='home'?'active':'')+'">⌂<br>Inicio</button><button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'">🛒<br>Ventas</button><button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'">▥<br>Reportes</button><button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'">▦<br>Liquidación</button></nav>';
+}
 function render(){
   pending=false;
   var view=$('#view'),ae=document.activeElement;
@@ -401,20 +441,14 @@ function render(){
   $('#banner').innerHTML=bannerHTML();
   var h;
   if(!ready())h='<div class="empty"><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
-  else h=S.tab==='inicio'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='resumen'?viewSummary():viewLiq();
+  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='resumen'?viewSummary():viewLiq();
   var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   view.innerHTML=h;
   var sc1=view.querySelector('.monthbar .chips');
   if(sc1){sc1.scrollLeft=sl0;if(S.reveal){var on1=sc1.querySelector('.chip.on');if(on1)sc1.scrollLeft=Math.max(0,sc1.scrollLeft+on1.getBoundingClientRect().left-sc1.getBoundingClientRect().left-(sc1.clientWidth-on1.offsetWidth)/2)}}
   S.reveal=false;
   if(keep){var el=document.getElementById(keep.id);if(el){el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(_){}}}
-}
-
-/* ---------- inicio / accesos directos estilo SaludPlus ---------- */
-function viewHome(){
- var count=S.sales.length, total=S.sales.reduce(function(a,x){return a+net(x)},0);
- var tiles=[['ventas','🛒','Ventas','Registrar y consultar ventas','blue'],['inventario','📦','Inventario','Productos, stock y movimientos','green'],['gastos','🧾','Gastos','Control de gastos por empresa','orange'],['liquidacion','🧮','Liquidación','Cálculo de utilidad y repartición','purple'],['resumen','📊','Reportes','Resumen y resultados','pink']];
- return '<section class="home-panel"><div class="home-intro"><small>Accesos directos</small><h2>¿Qué deseas hacer?</h2><p>Toca una tarjeta para abrir la función.</p></div><div class="home-grid">'+tiles.map(function(t){return '<button class="home-tile '+t[4]+'" type="button" data-a="tab" data-v="'+t[0]+'"><span class="tile-icon">'+t[1]+'</span><span class="tile-copy"><strong>'+t[2]+'</strong><small>'+t[3]+'</small></span><span class="tile-arrow">›</span></button>'}).join('')+'</div><button class="home-new" type="button" data-a="new-sale">＋ Nueva venta</button><div class="home-summary"><div><small>Ventas registradas</small><strong>'+count+'</strong></div><div><small>Total de ventas</small><strong class="num">'+money(total)+'</strong></div></div></section>';
+  document.querySelector('.cv-bottom')?.remove();document.body.insertAdjacentHTML('beforeend',cvBottom());
 }
 
 /* ---------- ventas ---------- */
@@ -444,7 +478,7 @@ function viewSales(){
   }).sort(cmpSale);
   var totals={all:0};HOLDERS.forEach(function(h){totals[h]=0});
   var cnt=0;S.sales.filter(function(s){return mo==='all'||mkey(s.date)===mo}).forEach(function(s){cnt++;var v=net(s);totals.all+=v;totals[HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega']+=v});
-  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt,mo==='all'?'venta registrada':'venta',mo==='all'?'ventas registradas':'ventas')+' · '+money(totals.all)+'</p></div><button class="btn" data-a="new-sale">+ Nueva venta</button></div>';
+  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt,mo==='all'?'venta registrada':'venta',mo==='all'?'ventas registradas':'ventas')+' · '+money(totals.all)+'</p></div></div>';
   if(!S.sales.length){
     return h+'<div class="empty"><strong>Aún no hay ventas</strong><span>'+(S.inv.length?'Registra la primera con «Nueva venta». El producto sale de tu inventario.':'Primero agrega tus productos en Inventario; después podrás venderlos aquí.')+'</span>'+(S.inv.length?'':'<button class="btn ghost" data-a="tab" data-v="inventario">Ir a Inventario</button>')+'</div>';
   }
