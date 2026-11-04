@@ -47,6 +47,11 @@ img{max-width:100%}
 .cv-bottom button{flex:1;min-height:56px;border:0;border-radius:14px;background:transparent;color:#a9bbcf;font-weight:700;font-size:12px}
 .cv-bottom button.active{background:#2e91c8;color:white}
 @media(max-width:480px){.cv-home{padding:14px}.cv-home .cv-tile{min-height:118px;padding:13px}.cv-home .cv-tile strong{font-size:17px}}
+
+.cv-home .cv-summary{margin-top:16px;padding:15px;border-radius:18px;background:#e8f1fb;border:1px solid #d1e0f2;color:#19314d}
+.cv-home .cv-summary h3{font-size:16px;margin:0 0 10px;color:#17324f}
+.cv-home .cv-stat{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #d0deed;font-size:14px}
+.cv-home .cv-stat b{font-variant-numeric:tabular-nums;text-align:right;color:#17324f}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -412,11 +417,11 @@ function bannerHTML(){
 function viewHome(){
  var now=new Date(),ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
  var sales=(S.sales||[]).filter(function(x){return String(x.date||'').slice(0,7)===ym});
- var total=sales.reduce(function(a,x){return a+cents(x.total||0)},0);
- var byHolder={Importoys:0,Importshop:0,Bodega:0};
- sales.forEach(function(x){var who=x.holder||x.who||'Importoys';if(byHolder.hasOwnProperty(who))byHolder[who]+=cents(x.total||0)});
+ var salesAmount=0,units=0,holder={Importoys:0,Importshop:0,Bodega:0};
+ sales.forEach(function(s){salesAmount+=net(s);units+=Math.max(0,parseInt(s.qty,10)||0);var who=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';holder[who]+=net(s)});
+ var expenses=allExp().filter(function(e){return String(e.date||'').slice(0,7)===ym});
+ var expTotal=expenses.reduce(function(a,e){return a+cents(e.amount)},0);
  var monthName=MONTHS[now.getMonth()]+' '+now.getFullYear();
- var pay=Math.max(0,byHolder.Importoys-byHolder.Importshop);
  return '<section class="cv-home"><p class="cv-eyebrow">ACCESOS DIRECTOS</p><h2>¿Qué deseas hacer?</h2><p class="cv-desc">Toca una tarjeta para abrir la función.</p>'+
  '<div class="cv-grid">'+
  '<button class="cv-tile cv-sales" data-a="tab" data-v="ventas"><strong>🛒 Ventas</strong><span>Registrar y consultar ventas</span></button>'+
@@ -424,11 +429,13 @@ function viewHome(){
  '<button class="cv-tile cv-exp" data-a="tab" data-v="gastos"><strong>🧾 Gastos</strong><span>Control por empresa</span></button>'+
  '<button class="cv-tile cv-liq" data-a="tab" data-v="liquidacion"><strong>🧮 Liquidación</strong><span>Utilidad y repartición</span></button>'+
  '<button class="cv-tile cv-report" data-a="tab" data-v="resumen"><strong>📊 Reportes</strong><span>Resumen y resultados</span></button></div>'+
- '<div class="cv-summary"><h3>Resumen del último mes · '+esc(monthName)+'</h3>'+
- '<div class="cv-stat"><span>Cantidad de ventas</span><b>'+sales.length+'</b></div>'+
- '<div class="cv-stat"><span>Monto de ventas</span><b>'+money(total)+'</b></div>'+
- '<div class="cv-stat"><span>Liquidación pendiente</span><b>'+money(pay)+'</b></div></div>'+
- '<div class="cv-pay"><strong>Importoys paga a Importashop</strong><p>Importoys debe transferir a Importashop: <b>'+money(pay)+'</b></p></div></section>';
+ '<div class="cv-summary"><h3>Resumen del mes · '+esc(monthName)+'</h3>'+
+ '<div class="cv-stat"><span>Cantidad de productos vendidos</span><b>'+units+'</b></div>'+
+ '<div class="cv-stat"><span>Monto total de ventas</span><b>'+money(salesAmount)+'</b></div>'+
+ '<div class="cv-stat"><span>Gastos totales</span><b>'+money(expTotal)+'</b></div>'+
+ '<div class="cv-stat"><span>Dinero en Importoys</span><b>'+money(holder.Importoys)+'</b></div>'+
+ '<div class="cv-stat"><span>Dinero en Importashop</span><b>'+money(holder.Importshop)+'</b></div>'+
+ '<div class="cv-stat"><span>Dinero en Bodega</span><b>'+money(holder.Bodega)+'</b></div></div></section>';
 }
 function cvBottom(){
  return '<nav class="cv-bottom" aria-label="Navegación"><button data-a="home" class="'+(S.tab==='home'?'active':'')+'">⌂<br>Inicio</button><button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'">🛒<br>Ventas</button><button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'">▥<br>Reportes</button><button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'">▦<br>Liquidación</button></nav>';
@@ -818,6 +825,7 @@ document.addEventListener('click',async function(ev){
   var a=t.dataset.a,id=t.dataset.id;
   if(ev.target.tagName==='SELECT'||ev.target.tagName==='OPTION')return;
   switch(a){
+    case 'home':S.tab='home';S.del=null;S.reveal=false;render();break;
     case 'tab':S.tab=t.dataset.v;S.del=null;S.reveal=true;render();break;
     case 'month':S.month=t.dataset.v;S.del=null;S.reveal=true;render();break;
     case 'hf':S.hf=t.dataset.v;render();break;
