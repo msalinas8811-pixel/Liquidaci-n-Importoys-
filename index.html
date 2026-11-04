@@ -435,7 +435,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 .rtable td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .rtable .r{text-align:right;white-space:nowrap}.rtable small{color:var(--ink3)}
 .rtable tfoot td{font-weight:700;background:var(--surface2);border-bottom:0}
-.seg2{grid-template-columns:repeat(4,1fr)}.seg2 button{font-size:12.5px;padding:0 2px}
+.seg2{grid-template-columns:repeat(3,1fr)}.seg2 button{font-size:12.5px;padding:0 2px}
 @media (min-width:700px){.seg2 button{font-size:14px}}
 @media print{.rtable{min-width:0;font-size:11px}.rep{break-inside:auto}.tscroll{overflow:visible}}
 
@@ -486,6 +486,10 @@ details[open] summary::after{transform:rotate(-135deg)}
   #view.fresh>*{animation:none!important}
   .sec-title{break-after:avoid}
 }
+
+@media (min-width:700px){.seg2{grid-template-columns:repeat(5,1fr)}}
+.topbar{height:5px;border-radius:3px;background:var(--line);margin-top:5px;overflow:hidden;min-width:90px}.topbar i{display:block;height:100%;border-radius:3px;background:var(--brand)}
+@media print{.topbar{display:none}}
 </style>
 </head>
 <body>
@@ -725,7 +729,7 @@ function render(){
   $('#banner').innerHTML=bannerHTML();
   var h;
   if(!ready())h='<div class="empty"><div class="ico">'+ic('box')+'</div><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
-  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():viewLiq());
+  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():S.rep==='top'?viewTop():viewLiq());
   var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   clearTimeout(freshT);
   if(S.anim&&ready()){view.classList.add('fresh');freshT=setTimeout(function(){view.classList.remove('fresh')},900)}else if(!S.anim){view.classList.remove('fresh')}
@@ -865,10 +869,29 @@ function cierreText(){
   HOLDERS.forEach(function(x){L.push(x+': le queda '+money(P[x].bal)+(x==='Bodega'?'':' (le corresponde '+money(P[x].target)+')'))});
   return L.join('\n');
 }
-function textFor(w){return w==='dia'?diaText():w==='cierre'?cierreText():liqText()}
+function topProducts(list){var m={};list.forEach(function(s){var n=String(s.productName||'Sin nombre').trim()+(s.productModel?' ('+String(s.productModel).trim()+')':''),o=m[n]||(m[n]={name:n,qty:0,n:0,net:0});o.qty+=parseInt(s.qty,10)||0;o.n++;o.net+=net(s)});
+  return Object.keys(m).map(function(k){return m[k]}).sort(function(a,b){return b.qty-a.qty||b.net-a.net||a.name.localeCompare(b.name)})}
+function topTable(rows,tq){var mx=rows.length?rows[0].qty:1;
+  return '<div class="tscroll"><table class="rtable"><thead><tr><th class="r">#</th><th>Producto</th><th class="r">Unidades</th><th class="r">% del total</th><th class="r">Ventas</th><th class="r">Total</th></tr></thead><tbody>'+
+   rows.map(function(r,i){var p=tq?Math.round(r.qty*1000/tq)/10:0;return '<tr><td class="r num"><b>'+(i+1)+'</b></td><td>'+esc(r.name)+'<div class="topbar"><i style="width:'+Math.max(3,Math.round(r.qty*100/mx))+'%"></i></div></td><td class="r num"><b>'+r.qty+'</b></td><td class="r num">'+p+'%</td><td class="r num">'+r.n+'</td><td class="r num">'+money(r.net)+'</td></tr>'}).join('')+
+   '</tbody></table></div>'}
+function viewTop(){
+  var k=repMonth();
+  if(!S.sales.length)return emptyBox('chart','Aún no hay ventas','Cuando registres ventas, aquí verás qué producto se vende más.');
+  var list=monthSales(k),rows=topProducts(list),tq=rows.reduce(function(a,r){return a+r.qty},0),all=topProducts(S.sales),aq=all.reduce(function(a,r){return a+r.qty},0);
+  return monthBar1()+'<section class="card rep"><div class="pad"><h3 class="rep-t">Productos más vendidos · '+mlabel(k)+'</h3><p class="sub">Ordenados por unidades vendidas, del 1 al último</p></div>'+
+    (rows.length?topTable(rows,tq):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>'+
+    '<div class="sec-title">Acumulado de todos los meses</div><section class="card rep">'+topTable(all,aq)+'</section>'+reportActs('top');
+}
+function topText(){
+  var k=repMonth(),rows=topProducts(monthSales(k)),tq=rows.reduce(function(a,r){return a+r.qty},0),L=['*Productos más vendidos · '+mlabel(k)+'*',''];
+  rows.forEach(function(r,i){L.push((i+1)+'. '+r.name+' — *'+r.qty+' '+(r.qty===1?'unidad':'unidades')+'* ('+plural(r.n,'venta','ventas')+', '+money(r.net)+')')});
+  L.push('','Total: '+tq+' unidades');return L.join('\n');
+}
+function textFor(w){return w==='top'?topText():w==='dia'?diaText():w==='cierre'?cierreText():liqText()}
 function viewReports(inner){
   return '<div class="sec-head"><div><h2>Reportes</h2><p class="sub">Reportes para enviar, liquidación y resumen de cada mes.</p></div></div>'+
-    '<div class="seg2" role="tablist">'+[['dia','Diario'],['cierre','Cierre del mes'],['liq','Liquidación'],['res','Resumen']].map(function(t){return '<button type="button" role="tab" class="'+(S.rep===t[0]?'on':'')+'" aria-selected="'+(S.rep===t[0])+'" data-a="rep" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+inner;
+    '<div class="seg2" role="tablist">'+[['dia','Diario'],['cierre','Cierre del mes'],['top','Más vendidos'],['liq','Liquidación'],['res','Resumen']].map(function(t){return '<button type="button" role="tab" class="'+(S.rep===t[0]?'on':'')+'" aria-selected="'+(S.rep===t[0])+'" data-a="rep" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+inner;
 }
 
 /* ---------- ventas ---------- */
@@ -1368,7 +1391,14 @@ async function makePdf(kind){
       rows:list.map(function(s){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';return [fdate(s.date),s.customer,s.productName+(s.productModel?' ('+s.productModel+')':''),String(parseInt(s.qty,10)||0),m2(cents(s.unitPrice)),cents(s.discount)?'-'+m2(cents(s.discount)):'-',cents(s.commission)?m2(cents(s.commission)):'-',envio(s),String(s.seller||'').trim()||'-',{t:h,c:HCOL[h],b:1},m2(net(s))]}),
       foot:[['Totales ('+t.n+' ventas)','','',String(t.qty),'',t.disc?'-'+m2(t.disc):'-',m2(t.comm),'','','',m2(t.net)]]});
   };
-  if(kind==='dia'){
+  if(kind==='top'){
+    var tr=topProducts(list),tq=tr.reduce(function(a,r){return a+r.qty},0);
+    txt('Productos más vendidos - '+mlabel(k),M,y,19,true);y+=28;
+    txt('Ordenados por unidades vendidas   |   '+tq+' unidades en total',M,y,10,false,GRAY);y+=22;
+    if(tr.length)table({cols:[{h:'#',r:1,b:1},{h:'Producto'},{h:'Unidades',r:1,b:1},{h:'% del total',r:1},{h:'Ventas',r:1},{h:'Total',r:1}],
+      rows:tr.map(function(r,i){return [String(i+1),r.name,String(r.qty),(Math.round(r.qty*1000/tq)/10)+'%',String(r.n),m2(r.net)]}),size:10});
+    else{txt('No hay ventas en este mes.',M,y,10);y+=20}
+  }else if(kind==='dia'){
     txt('Reporte de ventas - '+mlabel(k),M,y,19,true);y+=28;
     txt('Ventas del mes hasta el '+fdate(today())+'   |   '+t.n+' ventas   |   '+t.qty+' unidades   |   Descuentos '+m2(t.disc)+'   |   Comisiones '+m2(t.comm)+'   |   Total vendido '+m2(t.net),M,y,10,false,GRAY);y+=22;
     if(list.length)salesTable();else{txt('No hay ventas en este mes.',M,y,10);y+=20}
@@ -1397,7 +1427,7 @@ async function makePdf(kind){
   var pages=doc.getPages();
   pages.forEach(function(pg,i){var s='Importoys / Importshop   |   Página '+(i+1)+' de '+pages.length;pg.drawText(CL(s),{x:PW-M-F.widthOfTextAtSize(CL(s),8),y:16,size:8,font:F,color:rgb(GRAY)})});
   var bytes=await doc.save(),b=new Blob([bytes],{type:'application/pdf'}),u=URL.createObjectURL(b),a=document.createElement('a');
-  a.href=u;a.download=(kind==='dia'?'reporte-ventas-':'cierre-')+k+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},6000);
+  a.href=u;a.download=(kind==='top'?'mas-vendidos-':kind==='dia'?'reporte-ventas-':'cierre-')+k+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},6000);
 }
 function openData(){
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent),standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
