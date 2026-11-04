@@ -56,39 +56,42 @@ img{max-width:100%}
 .cv-home .cv-month-label{display:block;font-size:13px;font-weight:700;color:#71869e;margin:8px 0 6px}
 .cv-home .cv-month-select{display:block;width:100%;min-height:48px;border:1px solid #bfd2e7;border-radius:12px;padding:10px 12px;background:#fff;color:#17324f;font-size:16px;margin-bottom:8px}
 
-/* Barra inferior: iconos ampliados y navegación más dinámica */
-.cv-bottom{
- position:fixed!important;left:0!important;right:0!important;bottom:0!important;
- z-index:1000;display:flex;align-items:stretch;justify-content:space-around;
- gap:5px;padding:8px 7px calc(9px + env(safe-area-inset-bottom))!important;
- background:linear-gradient(180deg,#142a43f7,#0b1d32)!important;
- border-top:1px solid #38516d!important;box-shadow:0 -7px 20px #07142630;
+/* Barra inferior moderna: navegación tipo app, iconos vectoriales y estado activo animado */
+.cv-bottom-modern{
+ position:fixed!important;inset:auto 0 0!important;z-index:9999!important;
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+ align-items:end!important;gap:5px!important;
+ padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important;
+ background:linear-gradient(180deg,rgba(18,39,61,.96),rgba(8,25,43,.99))!important;
+ border-top:1px solid rgba(125,169,204,.28)!important;
+ box-shadow:0 -9px 28px rgba(4,17,32,.22)!important;
+ backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;
 }
-.cv-bottom button{
- flex:1;min-width:0;min-height:70px!important;padding:8px 4px!important;
- border:0!important;border-radius:16px!important;background:transparent!important;
- color:#a9bfd3!important;font-size:13px!important;font-weight:700!important;
- line-height:1.25;display:flex;flex-direction:column;align-items:center;justify-content:center;
- gap:4px;transition:background .16s ease,transform .16s ease,color .16s ease;
+.cv-bottom-modern button{
+ min-width:0!important;min-height:67px!important;padding:7px 3px!important;
+ border:1px solid transparent!important;border-radius:17px!important;
+ background:transparent!important;color:#9db4ca!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:center!important;gap:5px!important;
+ font:600 12px/1.1 system-ui,sans-serif!important;
+ transition:transform .18s ease,background .2s ease,color .2s ease,box-shadow .2s ease!important;
 }
-.cv-bottom button:first-line{font-size:13px}
-.cv-bottom button.active{
- background:linear-gradient(135deg,#2b9bd0,#1878b4)!important;color:#fff!important;
- box-shadow:0 4px 13px #1692c54a;
+.cv-bottom-modern .cv-nav-icon{
+ width:38px;height:34px;display:flex;align-items:center;justify-content:center;
+ transition:transform .2s ease;
 }
-.cv-bottom button:active{transform:scale(.94)}
-.cv-bottom button::first-letter{font-size:27px}
+.cv-bottom-modern .cv-nav-icon svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cv-bottom-modern .cv-nav-label{display:block;font-size:12px;letter-spacing:.1px;white-space:nowrap}
+.cv-bottom-modern button.active{
+ color:#fff!important;background:linear-gradient(135deg,#2ba9dd,#177fc1)!important;
+ border-color:rgba(132,218,255,.3)!important;
+ box-shadow:0 5px 16px rgba(24,145,205,.32),inset 0 1px rgba(255,255,255,.18)!important;
+ transform:translateY(-3px)!important;
+}
+.cv-bottom-modern button.active .cv-nav-icon{transform:scale(1.12)}
+.cv-bottom-modern button:active{transform:scale(.94)!important}
 body{padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}
-@media(min-width:700px){.cv-bottom{left:50%!important;right:auto!important;transform:translateX(-50%);width:min(100%,900px);border-radius:18px 18px 0 0}}
-
-/* Iconos realmente separados del texto y ampliados */
-.cv-bottom{position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:9999!important;display:flex!important;gap:6px!important;align-items:stretch!important;padding:8px 8px calc(9px + env(safe-area-inset-bottom))!important;background:#10243b!important;border-top:1px solid #304c68!important;box-shadow:0 -6px 18px #07142630!important}
-.cv-bottom button{flex:1!important;min-width:0!important;min-height:72px!important;padding:7px 3px!important;border:0!important;border-radius:15px!important;background:transparent!important;color:#a9bfd3!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;font-size:12px!important;font-weight:700!important;line-height:1.15!important}
-.cv-bottom .cv-nav-icon{display:flex!important;align-items:center!important;justify-content:center!important;height:34px!important;font-size:30px!important;line-height:1!important;font-weight:400!important}
-.cv-bottom .cv-nav-label{display:block!important;font-size:12px!important;line-height:1.15!important;white-space:nowrap!important}
-.cv-bottom button.active{background:#2396ca!important;color:#fff!important;box-shadow:0 3px 12px #168cc64d!important}
-.cv-bottom button:active{transform:scale(.94)!important}
-body{padding-bottom:calc(105px + env(safe-area-inset-bottom))!important}
+@media(min-width:700px){.cv-bottom-modern{left:50%!important;right:auto!important;width:min(100%,560px)!important;transform:translateX(-50%);border-radius:20px 20px 0 0}}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -474,7 +477,11 @@ function viewHome(){
  '<div class="cv-stat"><span>Dinero actual Importoys</span><b>'+money(r.P.Importoys.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Importashop</span><b>'+money(r.P.Importshop.bal)+'</b></div><div class="cv-stat"><span>Dinero actual Bodega</span><b>'+money(r.P.Bodega.bal)+'</b></div></div></section>';
 }
 function cvBottom(){
- return '<nav class="cv-bottom" aria-label="Navegación"><button data-a="home" class="'+(S.tab==='home'?'active':'')+'"><span class="cv-nav-icon">⌂</span><span class="cv-nav-label">Inicio</span></button><button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'"><span class="cv-nav-icon">🛒</span><span class="cv-nav-label">Ventas</span></button><button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'"><span class="cv-nav-icon">▥</span><span class="cv-nav-label">Reportes</span></button><button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'"><span class="cv-nav-icon">⇄</span><span class="cv-nav-label">Liquidación</span></button></nav>';
+ return '<nav class="cv-bottom cv-bottom-modern" aria-label="Navegación">'+
+ '<button data-a="home" class="'+(S.tab==='home'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/></svg></span><span class="cv-nav-label">Inicio</span></button>'+
+ '<button data-a="tab" data-v="ventas" class="'+(S.tab==='ventas'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.2 12.2a2 2 0 0 0 2 1.6h9.3a2 2 0 0 0 1.9-1.4L22 8H6"/><circle cx="10" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg></span><span class="cv-nav-label">Ventas</span></button>'+
+ '<button data-a="tab" data-v="resumen" class="'+(S.tab==='resumen'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h17"/><rect x="7" y="12" width="3" height="5" rx="1"/><rect x="12" y="8" width="3" height="9" rx="1"/><rect x="17" y="4" width="3" height="13" rx="1"/></svg></span><span class="cv-nav-label">Reportes</span></button>'+
+ '<button data-a="tab" data-v="liquidacion" class="'+(S.tab==='liquidacion'?'active':'')+'"><span class="cv-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h15l-3-3m3 3-3 3M20 17H5l3 3m-3-3 3-3"/></svg></span><span class="cv-nav-label">Liquidación</span></button></nav>';
 }
 function render(){
   pending=false;
