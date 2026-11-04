@@ -210,24 +210,31 @@ details[open]>summary::after{content:"–"}
 .foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);display:grid;gap:10px;font-size:12.5px;color:var(--muted)}
 .foot .btns{display:flex;gap:8px;flex-wrap:wrap}
 .foot .btn{font-size:13px;min-height:38px;padding:7px 12px}
-</style>
-<style id="mobile-navigation-fix">
-/* Corrección móvil: navegación completa y controles táctiles */
-.tabs{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin!important;overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;padding:8px 0 12px!important}
-.tabs button{flex:0 0 auto!important;width:auto!important;min-width:max-content!important;min-height:54px!important;padding:14px 16px!important;font-size:15px!important;white-space:nowrap!important;border-radius:10px 10px 0 0!important}
-.btn{min-height:54px!important;padding:13px 18px!important;font-size:16px!important;border-radius:12px!important}
-.lk{min-height:48px!important;padding:10px 12px!important;font-size:15px!important}
-@media(max-width:640px){
- .sec-head{align-items:stretch!important}
- .sec-head>.btn,.sec-head button{min-height:60px!important}
- .sec-head h2{font-size:23px!important}
- .tools{gap:12px!important}
- .tools input[type=search]{min-height:58px!important;font-size:16px!important}
- .chips{gap:8px!important;padding:4px 0 8px!important}
- .chip{min-height:48px!important;padding:11px 15px!important;font-size:15px!important}
- .card{border-radius:14px!important}
+
+/* Rediseño móvil aplicado sobre la app existente: navegación en mosaico, botones táctiles y tarjetas. */
+@media(max-width:600px){
+ body{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(28px,env(safe-area-inset-bottom));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px);font-size:16px}
+ .app{width:100%;max-width:100%;}
+ .top{grid-template-columns:minmax(92px,38%) minmax(0,1fr);gap:10px 12px;padding:8px 0 14px}
+ .brand{border-radius:18px;padding:5px;align-items:center;justify-content:center;min-width:0}
+ .logo{max-height:112px;max-width:100%;object-fit:contain}
+ .top h1{font-size:clamp(22px,6vw,30px);line-height:1.12;overflow-wrap:anywhere}
+ .legend{font-size:11px;gap:8px 12px;letter-spacing:.04em}
+ .stripe{height:5px;margin:2px 0 16px}
+ .tabs{position:relative;top:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;overflow:visible;border:0;margin:0 0 18px;background:transparent;padding:0}
+ .tabs button{min-width:0;white-space:normal;min-height:58px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 8px;margin:0;font-size:15px;font-weight:650;line-height:1.15;color:var(--muted);box-shadow:0 2px 0 rgba(0,0,0,.04)}
+ .tabs button.on{border:2px solid var(--brand);background:var(--surface2);color:var(--brand);border-bottom-width:2px}
+ .sec-head{align-items:center;gap:10px}
+ .sec-head h2{font-size:25px}
+ .btn{min-height:54px!important;border-radius:14px!important;padding:13px 17px!important;font-size:16px!important}
+ .btns{gap:9px}
+ .btns>.btn{flex:1 1 calc(50% - 9px);min-width:130px}
+ input,select,textarea{font-size:16px!important;min-height:48px}
+ .card,.sale,.month,.panel{border-radius:16px}
 }
-</style></head>
+@media(min-width:601px){.tabs button{font-size:14px;padding:14px 9px}}
+</style>
+</head>
 <body>
 <div class="app">
   <header class="top">
