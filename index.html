@@ -31,6 +31,22 @@ input,select,textarea{min-height:44px}
  .tabs button{min-width:92px}
 }
 
+
+/* Ajuste real de interfaz: acciones amplias, paneles legibles y navegación táctil */
+:root{--tap-size:56px}
+button,.btn,[role="button"]{touch-action:manipulation}
+.btn,button{transition:transform .12s ease,filter .12s ease}
+.btn:active,button:active{transform:scale(.985)}
+.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media(max-width:600px){
+ body{font-size:16px}
+ .btn{min-height:56px!important;font-size:16px!important;padding:14px 18px!important}
+ .btns{display:flex;flex-wrap:wrap;gap:10px!important}
+ .btns>.btn{flex:1 1 calc(50% - 10px);min-width:130px}
+ .tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:6px 2px 10px;scrollbar-width:thin}
+ .tabs button{flex:0 0 auto;min-height:56px!important;font-size:15px!important;padding:14px 13px!important}
+ input,select,textarea{font-size:16px!important;min-height:48px!important}
+}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
