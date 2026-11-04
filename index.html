@@ -438,6 +438,17 @@ details[open] summary::after{transform:rotate(-135deg)}
 .seg2{grid-template-columns:repeat(4,1fr)}.seg2 button{font-size:12.5px;padding:0 2px}
 @media (min-width:700px){.seg2 button{font-size:14px}}
 @media print{.rtable{min-width:0;font-size:11px}.rep{break-inside:auto}.tscroll{overflow:visible}}
+
+.payhl{background:linear-gradient(150deg,var(--hero1),var(--hero2));color:#fff;border-radius:26px;padding:20px;box-shadow:0 18px 40px -20px rgba(15,31,82,.7);border:3px solid var(--sun)}
+.payhl .lab{font-size:13.5px;font-weight:600;opacity:.8}
+.payhl h3{font:800 24px/1.1 var(--f-d);letter-spacing:-.02em;margin:4px 0 14px}
+.phrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.12);border-radius:18px;padding:14px 16px}
+.phrow+.phrow{margin-top:10px}
+.phn{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:17px}
+.phn b{font:700 20px var(--f-d)}.phn small{opacity:.8;font-size:14px}
+.pha{font:800 clamp(30px,9vw,38px)/1 var(--f-d);color:var(--sun);letter-spacing:-.02em}
+.phok{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border-radius:18px;padding:14px 16px}
+@media print{.payhl{background:#fff!important;color:#000!important;border:2px solid #000;box-shadow:none}.pha{color:#000}}
 </style>
 </head>
 <body>
@@ -785,23 +796,28 @@ function diaText(){
   L.push('*Totales*','Ventas: '+t.n+' · Unidades: '+t.qty,'Descuentos: '+money(t.disc)+' · Comisiones: '+money(t.comm),'*Total vendido: '+money(t.net)+'*','','Dinero en Importoys: '+money(t.H.Importoys),'Dinero en Importshop: '+money(t.H.Importshop),'Dinero en Bodega: '+money(t.H.Bodega));
   return L.join('\n');
 }
+function payHL(r,k){
+  return '<section class="payhl" aria-label="Quién paga a quién"><span class="lab">Liquidación de '+mlabel(k)+'</span><h3>Quién paga a quién</h3>'+
+    (r.pays.length?r.pays.map(function(p){return '<div class="phrow"><div class="phn"><b>'+p.from+'</b><small>paga a</small><b>'+p.to+'</b></div><div class="pha num">'+money(p.amt)+'</div></div>'}).join(''):'<div class="phok">'+ic('check')+'<b>Todo está al día. No hay pagos pendientes.</b></div>')+'</section>';
+}
 function viewCierre(){
   var k=repMonth();
   if(!S.sales.length&&!S.exp.length)return emptyBox('chart','Todavía no hay datos','Cuando registres ventas y gastos, aquí verás el cierre del mes.');
   var r=calc(k),P=r.P,list=monthSales(k),t=salesTotals(list);
   var ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
-  var h=monthBar1()+'<section class="card rep"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
+  var h=monthBar1()+payHL(r,k)+'<section class="card rep" style="margin-top:14px"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
     '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+'</dl></section>';
   h+='<div class="sec-title">Ventas detalladas</div><section class="card rep">'+(list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>';
   h+='<div class="sec-title">Gastos detallados</div><section class="card rep">'+(ex.length?'<div class="tscroll"><table class="rtable"><thead><tr><th>Fecha</th><th>Descripción</th><th>Quién gastó</th><th class="r">Monto</th></tr></thead><tbody>'+ex.map(function(e){var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';return '<tr><td>'+fdate(e.date)+'</td><td>'+esc(e.description)+(e.auto?' <small>automático</small>':'')+'</td><td><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span></td><td class="r num"><b>'+money(cents(e.amount))+'</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td colspan="3">Total de gastos</td><td class="r num">'+money(r.T.exp)+'</td></tr></tfoot></table></div>':'<p class="pad stat">No hay gastos en este mes.</p>')+
     '<dl class="kv" style="border-top:1px solid var(--line)"><div><dt>Gastó Importoys</dt><dd class="num">'+money(P.Importoys.exp)+'</dd></div><div><dt>Gastó Importshop</dt><dd class="num">'+money(P.Importshop.exp)+'</dd></div></dl></section>';
   h+='<div class="sec-title">Cuánto dinero tiene cada uno</div><section class="card rep"><div class="tscroll"><table class="rtable"><thead><tr><th>Quién</th><th class="r">Cobrado</th><th class="r">Comisiones</th><th class="r">Gastos</th><th class="r">Le queda</th><th class="r">Le corresponde</th></tr></thead><tbody>'+HOLDERS.map(function(x){var p=P[x];return '<tr><td><span class="who h-'+x+'"><i class="dot"></i>'+x+'</span></td><td class="r num">'+money(p.inc)+'</td><td class="r num">'+(r.ded?money(p.comm):'—')+'</td><td class="r num">'+money(p.exp)+'</td><td class="r num"><b>'+money(p.bal)+'</b></td><td class="r num">'+(x==='Bodega'?'—':money(p.target))+'</td></tr>'}).join('')+'</tbody></table></div></section>';
-  h+='<div class="sec-title">Liquidación: quién paga a quién</div>'+(r.pays.length?r.pays.map(function(p){return '<div class="pay" style="--c-from:'+HC[p.from]+';--c-to:'+HC[p.to]+';margin-bottom:10px"><span class="who h-'+p.from+'"><span class="avatar">'+p.from.charAt(0)+'</span>'+p.from+'</span><div class="mid"><small>paga</small><b class="num">'+money(p.amt)+'</b><div class="flow"></div></div><span class="who h-'+p.to+'"><span class="avatar">'+p.to.charAt(0)+'</span>'+p.to+'</span></div>'}).join(''):'<div class="ok-box">'+ic('check')+'<span>Todo está al día. No hay pagos pendientes.</span></div>');
   return h+reportActs('cierre');
 }
 function cierreText(){
   var k=repMonth(),r=calc(k),P=r.P,list=monthSales(k),ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
-  var L=['*Cierre de '+mlabel(k)+'*','','*Resumen*','Total vendido: '+money(r.T.inc)];
+  var L=['*Cierre de '+mlabel(k)+'*','','*QUIÉN PAGA A QUIÉN*'];
+  if(r.pays.length)r.pays.forEach(function(p){L.push('➡ '+p.from+' paga '+money(p.amt)+' a '+p.to)});else L.push('Todo está al día, no hay pagos pendientes.');
+  L.push('','*Resumen*','Total vendido: '+money(r.T.inc));
   if(r.ded)L.push('Comisiones: −'+money(r.T.comm));
   L.push('Gastos: −'+money(r.T.exp),'Ganancia a repartir: '+money(r.profit));
   L.push('','*Ventas ('+list.length+')*');
@@ -810,8 +826,6 @@ function cierreText(){
   ex.forEach(function(e,i){L.push((i+1)+'. '+fdate(e.date)+' · '+e.description+' · '+(e.who||'Importoys')+' · '+money(cents(e.amount)))});
   L.push('Total de gastos: '+money(r.T.exp),'Gastó Importoys: '+money(P.Importoys.exp),'Gastó Importshop: '+money(P.Importshop.exp),'','*Dinero de cada uno*');
   HOLDERS.forEach(function(x){L.push(x+': le queda '+money(P[x].bal)+(x==='Bodega'?'':' (le corresponde '+money(P[x].target)+')'))});
-  L.push('','*Liquidación*');
-  if(r.pays.length)r.pays.forEach(function(p){L.push('• '+p.from+' paga '+money(p.amt)+' a '+p.to)});else L.push('Todo está al día.');
   return L.join('\n');
 }
 function textFor(w){return w==='dia'?diaText():w==='cierre'?cierreText():liqText()}
