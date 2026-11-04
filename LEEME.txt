@@ -30,3 +30,6 @@ SUS DATOS
 ACTUALIZAR LA APP
 - Sube de nuevo los archivos al mismo sitio. En sw.js, cambia
   ventas-v1 por ventas-v2 para forzar la actualización.
+
+
+ACTUALIZACION: botones principales ampliados (minimo 48px), pestañas mas grandes y campos tactiles. El almacenamiento sigue siendo local en el navegador (localStorage); no se conectó Firebase en esta versión.

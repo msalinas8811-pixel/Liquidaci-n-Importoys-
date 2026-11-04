@@ -20,6 +20,17 @@ html,body{height:auto}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
+
+/* Accesibilidad móvil: botones grandes y cómodos */
+.btn{font-size:15px!important;min-height:48px!important;padding:12px 16px!important;border-radius:12px!important;touch-action:manipulation}
+.btns{gap:10px}
+.tabs button{font-size:14px;min-height:52px;padding:14px 10px;font-weight:600}
+input,select,textarea{min-height:44px}
+@media(max-width:600px){
+ .btns>.btn{flex:1 1 auto}
+ .tabs button{min-width:92px}
+}
+
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
