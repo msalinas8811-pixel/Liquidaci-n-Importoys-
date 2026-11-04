@@ -20,33 +20,6 @@ html,body{height:auto}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-
-/* Accesibilidad móvil: botones grandes y cómodos */
-.btn{font-size:15px!important;min-height:48px!important;padding:12px 16px!important;border-radius:12px!important;touch-action:manipulation}
-.btns{gap:10px}
-.tabs button{font-size:14px;min-height:52px;padding:14px 10px;font-weight:600}
-input,select,textarea{min-height:44px}
-@media(max-width:600px){
- .btns>.btn{flex:1 1 auto}
- .tabs button{min-width:92px}
-}
-
-
-/* Ajuste real de interfaz: acciones amplias, paneles legibles y navegación táctil */
-:root{--tap-size:56px}
-button,.btn,[role="button"]{touch-action:manipulation}
-.btn,button{transition:transform .12s ease,filter .12s ease}
-.btn:active,button:active{transform:scale(.985)}
-.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-@media(max-width:600px){
- body{font-size:16px}
- .btn{min-height:56px!important;font-size:16px!important;padding:14px 18px!important}
- .btns{display:flex;flex-wrap:wrap;gap:10px!important}
- .btns>.btn{flex:1 1 calc(50% - 10px);min-width:130px}
- .tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding:6px 2px 10px;scrollbar-width:thin}
- .tabs button{flex:0 0 auto;min-height:56px!important;font-size:15px!important;padding:14px 13px!important}
- input,select,textarea{font-size:16px!important;min-height:48px!important}
-}
 </style>
 <style>
 /* Layout: una columna centrada (máx. 760px), barra de pestañas fija arriba; listas como filas dentro de un grupo por mes, resúmenes como tarjetas por mes. */
@@ -238,7 +211,23 @@ details[open]>summary::after{content:"–"}
 .foot .btns{display:flex;gap:8px;flex-wrap:wrap}
 .foot .btn{font-size:13px;min-height:38px;padding:7px 12px}
 </style>
-</head>
+<style id="mobile-navigation-fix">
+/* Corrección móvil: navegación completa y controles táctiles */
+.tabs{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin!important;overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;padding:8px 0 12px!important}
+.tabs button{flex:0 0 auto!important;width:auto!important;min-width:max-content!important;min-height:54px!important;padding:14px 16px!important;font-size:15px!important;white-space:nowrap!important;border-radius:10px 10px 0 0!important}
+.btn{min-height:54px!important;padding:13px 18px!important;font-size:16px!important;border-radius:12px!important}
+.lk{min-height:48px!important;padding:10px 12px!important;font-size:15px!important}
+@media(max-width:640px){
+ .sec-head{align-items:stretch!important}
+ .sec-head>.btn,.sec-head button{min-height:60px!important}
+ .sec-head h2{font-size:23px!important}
+ .tools{gap:12px!important}
+ .tools input[type=search]{min-height:58px!important;font-size:16px!important}
+ .chips{gap:8px!important;padding:4px 0 8px!important}
+ .chip{min-height:48px!important;padding:11px 15px!important;font-size:15px!important}
+ .card{border-radius:14px!important}
+}
+</style></head>
 <body>
 <div class="app">
   <header class="top">
