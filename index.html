@@ -449,6 +449,33 @@ details[open] summary::after{transform:rotate(-135deg)}
 .pha{font:800 clamp(30px,9vw,38px)/1 var(--f-d);color:var(--sun);letter-spacing:-.02em}
 .phok{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.12);border-radius:18px;padding:14px 16px}
 @media print{.payhl{background:#fff!important;color:#000!important;border:2px solid #000;box-shadow:none}.pha{color:#000}}
+
+.narrow{max-width:640px}
+.rtable.sm{min-width:0}
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .narrow{max-width:150mm}
+  .payhl{max-width:150mm;padding:12px 16px}
+  .rtable.sm th,.rtable.sm td{padding:6px 10px}
+  .kv>div{padding:6px 14px}
+  .sec-title{margin:14px 2px 6px}
+  .trio{break-inside:avoid}
+  .rtable tr{break-inside:avoid}
+  .rtable thead{display:table-header-group}
+}
+
+@media print{
+  .narrow{width:fit-content;min-width:90mm;max-width:125mm}
+  .payhl.narrow,.payhl{width:fit-content;min-width:110mm}
+  .rtable.sm{width:auto;font-size:10.5px}
+  .rtable.sm th,.rtable.sm td{padding:4px 8px}
+  .rtable.sm td:nth-child(2){max-width:55mm}
+  .narrow .kv>div{padding:4px 10px;gap:20px}
+  .narrow .kv dd{font-size:12px}
+}
+.rtable.sm{width:auto}
+@media print{.narrow.w2{max-width:none}.narrow.w2 .tscroll{overflow:visible}}
 </style>
 </head>
 <body>
@@ -786,7 +813,7 @@ function viewDia(){
   return monthBar1()+'<section class="card rep"><div class="pad"><h3 class="rep-t">Reporte de ventas · '+mlabel(k)+'</h3><p class="sub">Ventas del mes hasta el '+fdate(today())+'</p></div>'+
     '<div class="trio" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div style="border-top-color:var(--brand)"><div class="lab">Ventas</div><div class="val num">'+t.n+'</div></div><div style="border-top-color:var(--brand)"><div class="lab">Unidades</div><div class="val num">'+t.qty+'</div></div><div style="border-top-color:var(--k-exp)"><div class="lab">Descuentos</div><div class="val num">'+money(t.disc)+'</div></div><div style="border-top-color:var(--k-real)"><div class="lab">Total</div><div class="val num">'+money(t.net)+'</div></div></div>'+
     (list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>'+
-    '<div class="sec-title">Quién tiene el dinero</div>'+holderTotals(t)+'<div class="sec-title">Por vendedor</div><section class="card">'+sellerTotals(t)+'</section>'+reportActs('dia');
+    '<div class="sec-title">Quién tiene el dinero</div><div class="narrow">'+holderTotals(t)+'</div>'+'<div class="sec-title">Por vendedor</div><section class="card narrow">'+sellerTotals(t)+'</section>'+reportActs('dia');
 }
 function diaText(){
   var k=repMonth(),list=monthSales(k),t=salesTotals(list),L=['*Reporte de ventas · '+mlabel(k)+'*','Al '+fdate(today()),''];
@@ -805,12 +832,12 @@ function viewCierre(){
   if(!S.sales.length&&!S.exp.length)return emptyBox('chart','Todavía no hay datos','Cuando registres ventas y gastos, aquí verás el cierre del mes.');
   var r=calc(k),P=r.P,list=monthSales(k),t=salesTotals(list);
   var ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
-  var h=monthBar1()+payHL(r,k)+'<section class="card rep" style="margin-top:14px"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
+  var h=monthBar1()+payHL(r,k)+'<section class="card rep narrow" style="margin-top:14px"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
     '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+'</dl></section>';
   h+='<div class="sec-title">Ventas detalladas</div><section class="card rep">'+(list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>';
-  h+='<div class="sec-title">Gastos detallados</div><section class="card rep">'+(ex.length?'<div class="tscroll"><table class="rtable"><thead><tr><th>Fecha</th><th>Descripción</th><th>Quién gastó</th><th class="r">Monto</th></tr></thead><tbody>'+ex.map(function(e){var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';return '<tr><td>'+fdate(e.date)+'</td><td>'+esc(e.description)+(e.auto?' <small>automático</small>':'')+'</td><td><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span></td><td class="r num"><b>'+money(cents(e.amount))+'</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td colspan="3">Total de gastos</td><td class="r num">'+money(r.T.exp)+'</td></tr></tfoot></table></div>':'<p class="pad stat">No hay gastos en este mes.</p>')+
+  h+='<div class="sec-title">Gastos detallados</div><section class="card rep narrow">'+(ex.length?'<div class="tscroll"><table class="rtable sm"><thead><tr><th>Fecha</th><th>Descripción</th><th>Quién gastó</th><th class="r">Monto</th></tr></thead><tbody>'+ex.map(function(e){var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';return '<tr><td>'+fdate(e.date)+'</td><td>'+esc(e.description)+(e.auto?' <small>automático</small>':'')+'</td><td><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span></td><td class="r num"><b>'+money(cents(e.amount))+'</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td colspan="3">Total de gastos</td><td class="r num">'+money(r.T.exp)+'</td></tr></tfoot></table></div>':'<p class="pad stat">No hay gastos en este mes.</p>')+
     '<dl class="kv" style="border-top:1px solid var(--line)"><div><dt>Gastó Importoys</dt><dd class="num">'+money(P.Importoys.exp)+'</dd></div><div><dt>Gastó Importshop</dt><dd class="num">'+money(P.Importshop.exp)+'</dd></div></dl></section>';
-  h+='<div class="sec-title">Cuánto dinero tiene cada uno</div><section class="card rep"><div class="tscroll"><table class="rtable"><thead><tr><th>Quién</th><th class="r">Cobrado</th><th class="r">Comisiones</th><th class="r">Gastos</th><th class="r">Le queda</th><th class="r">Le corresponde</th></tr></thead><tbody>'+HOLDERS.map(function(x){var p=P[x];return '<tr><td><span class="who h-'+x+'"><i class="dot"></i>'+x+'</span></td><td class="r num">'+money(p.inc)+'</td><td class="r num">'+(r.ded?money(p.comm):'—')+'</td><td class="r num">'+money(p.exp)+'</td><td class="r num"><b>'+money(p.bal)+'</b></td><td class="r num">'+(x==='Bodega'?'—':money(p.target))+'</td></tr>'}).join('')+'</tbody></table></div></section>';
+  h+='<div class="sec-title">Cuánto dinero tiene cada uno</div><section class="card rep narrow w2"><div class="tscroll"><table class="rtable sm"><thead><tr><th>Quién</th><th class="r">Cobrado</th><th class="r">Comisiones</th><th class="r">Gastos</th><th class="r">Le queda</th><th class="r">Le corresponde</th></tr></thead><tbody>'+HOLDERS.map(function(x){var p=P[x];return '<tr><td><span class="who h-'+x+'"><i class="dot"></i>'+x+'</span></td><td class="r num">'+money(p.inc)+'</td><td class="r num">'+(r.ded?money(p.comm):'—')+'</td><td class="r num">'+money(p.exp)+'</td><td class="r num"><b>'+money(p.bal)+'</b></td><td class="r num">'+(x==='Bodega'?'—':money(p.target))+'</td></tr>'}).join('')+'</tbody></table></div></section>';
   return h+reportActs('cierre');
 }
 function cierreText(){
