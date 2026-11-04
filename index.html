@@ -241,7 +241,7 @@ h1,h2,h3,p{margin:0}
 .stock.low i{background:var(--c-shop)}.stock.out i{background:var(--bad)}
 .pfoot{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink2)}
 .pacts{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 10px;gap:6px}
-.pacts{flex-wrap:wrap}.pacts .mchip{flex:1 0 100%;justify-content:flex-start}.pacts .acts{margin-left:auto}
+.pacts{flex-wrap:wrap;justify-content:flex-end}.pacts .mchip{flex:1 0 100%;justify-content:flex-start}.pacts .acts{margin-left:auto}
 
 /* ---------- formularios ---------- */
 .fld{display:grid;gap:6px;margin-bottom:14px;min-width:0}
@@ -707,10 +707,10 @@ function legendHTML(segs){
 function viewHome(){
   var key=monthSel(),r=calc(key),P=r.P;
   var label=key==='all'?'todo el historial':mlabel(key);
-  var segs=[{l:'Costo de productos',v:r.T.cost,c:K.cost},{l:'Comisiones',v:r.ded?r.T.comm:0,c:K.comm},{l:'Gastos',v:r.T.exp,c:K.exp},{l:'Ganancia real',v:Math.max(0,r.real),c:K.real}];
+  var segs=[{l:'Comisiones',v:r.ded?r.T.comm:0,c:K.comm},{l:'Gastos',v:r.T.exp,c:K.exp},{l:'Ganancia',v:Math.max(0,r.profit),c:K.real}];
   var h=monthBar('home');
-  h+='<section class="hero" aria-label="Resumen de '+esc(label)+'"><span class="lab">'+(r.real<0?'Pérdida real':'Ganancia real')+' de '+esc(label)+'</span>'+
-    '<span class="big num'+(r.real<0?' neg':'')+'">'+cnt('home-real',r.real)+'</span>'+
+  h+='<section class="hero" aria-label="Resumen de '+esc(label)+'"><span class="lab">'+(r.profit<0?'Pérdida':'Ganancia')+' de '+esc(label)+'</span>'+
+    '<span class="big num'+(r.profit<0?' neg':'')+'">'+cnt('home-profit',r.profit)+'</span>'+
     '<span class="sub">'+(r.T.n?'De '+money(r.T.inc)+' vendidos en '+plural(r.T.n,'venta','ventas'):'Aún no hay ventas en este período')+'</span>'+
     '<div class="hrow"><div><small>Ventas</small><b class="num">'+money(r.T.inc)+'</b></div><div><small>Gastos</small><b class="num">'+money(r.T.exp)+'</b></div><div><small>Unidades</small><b class="num">'+r.units+'</b></div></div>'+
     blocksHTML(segs)+legendHTML(segs)+'</section>';
@@ -732,8 +732,8 @@ function viewHome(){
       return '<button type="button" data-a="month" data-v="'+k+'" class="'+(k===key?'on':'')+'" aria-label="'+mlabel(k)+' '+money(vals[i])+'"><b class="num">'+money(vals[i]).replace(/\.00$/,'')+'</b><i style="height:'+Math.max(6,Math.round(vals[i]/mx*72))+'px"></i><span>'+mshort(k).split(' ')[0]+'</span></button>'}).join('')+'</div></div>';
   }
   var low=S.inv.filter(function(p){return avail(p)<=0}).length;
-  if(r.nocost||low){
-    h+='<div class="alert">'+ic('alert')+'<span>'+(r.nocost?plural(r.nocost,'venta no tiene','ventas no tienen')+' precio de compra, así que la ganancia real no descuenta su costo. ':'')+(low?plural(low,'producto está agotado.','productos están agotados.'):'')+'</span><button class="lk" data-a="tab" data-v="inventario">Revisar</button></div>';
+  if(low){
+    h+='<div class="alert">'+ic('alert')+'<span>'+(low?plural(low,'producto está agotado.','productos están agotados.'):'')+'</span><button class="lk" data-a="tab" data-v="inventario">Revisar</button></div>';
   }
   var last=S.sales.slice().sort(cmpSale).slice(0,4);
   if(last.length){
@@ -791,7 +791,7 @@ function viewCierre(){
   var r=calc(k),P=r.P,list=monthSales(k),t=salesTotals(list);
   var ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
   var h=monthBar1()+'<section class="card rep"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
-    '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+(r.T.cost?'<div><dt>Costo de productos vendidos</dt><dd class="num">−'+money(r.T.cost)+'</dd></div><div><dt>Ganancia real</dt><dd class="num">'+money(r.real)+'</dd></div>':'')+'</dl></section>';
+    '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+'</dl></section>';
   h+='<div class="sec-title">Ventas detalladas</div><section class="card rep">'+(list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>';
   h+='<div class="sec-title">Gastos detallados</div><section class="card rep">'+(ex.length?'<div class="tscroll"><table class="rtable"><thead><tr><th>Fecha</th><th>Descripción</th><th>Quién gastó</th><th class="r">Monto</th></tr></thead><tbody>'+ex.map(function(e){var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';return '<tr><td>'+fdate(e.date)+'</td><td>'+esc(e.description)+(e.auto?' <small>automático</small>':'')+'</td><td><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span></td><td class="r num"><b>'+money(cents(e.amount))+'</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td colspan="3">Total de gastos</td><td class="r num">'+money(r.T.exp)+'</td></tr></tfoot></table></div>':'<p class="pad stat">No hay gastos en este mes.</p>')+
     '<dl class="kv" style="border-top:1px solid var(--line)"><div><dt>Gastó Importoys</dt><dd class="num">'+money(P.Importoys.exp)+'</dd></div><div><dt>Gastó Importshop</dt><dd class="num">'+money(P.Importshop.exp)+'</dd></div></dl></section>';
@@ -804,7 +804,6 @@ function cierreText(){
   var L=['*Cierre de '+mlabel(k)+'*','','*Resumen*','Total vendido: '+money(r.T.inc)];
   if(r.ded)L.push('Comisiones: −'+money(r.T.comm));
   L.push('Gastos: −'+money(r.T.exp),'Ganancia a repartir: '+money(r.profit));
-  if(r.T.cost)L.push('Costo de productos: −'+money(r.T.cost),'Ganancia real: '+money(r.real));
   L.push('','*Ventas ('+list.length+')*');
   list.forEach(function(s,i){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';L.push((i+1)+'. '+fdate(s.date)+' · '+s.customer+' · '+s.productName+' × '+(parseInt(s.qty,10)||0)+' · desc. '+money(cents(s.discount))+' · com. '+money(cents(s.commission))+' · '+envio(s)+' · '+(String(s.seller||'').trim()||'—')+' · dinero en '+h+' · '+money(net(s)))});
   L.push('','*Gastos ('+ex.length+')*');
@@ -884,13 +883,12 @@ function viewInv(){
     var a=avail(p),s=sold(p.id),qty=parseInt(p.qty,10)||0,pct=qty>0?Math.max(0,Math.min(100,Math.round(a/qty*100))):0;
     var st=a<=0?' out':(a<=2||pct<=25)?' low':'';
     var badge=a<=0?'<span class="pill bad">Agotado</span>':(a<=2?'<span class="pill warn">Quedan '+a+'</span>':'');
-    var margin=p.cost==null?'<span class="mchip" style="color:var(--bad)">Sin precio de compra</span>':'<span class="mchip">Margen '+money(cents(p.price)-cents(p.cost))+(cents(p.price)>0?' · '+Math.round((cents(p.price)-cents(p.cost))*100/cents(p.price))+'%':'')+'</span>';
     return '<article class="pcard"><button type="button" class="pimg" data-a="edit-inv" data-id="'+p.id+'" aria-label="Editar '+esc(p.name)+'">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="'+esc(p.name)+'" loading="lazy">':ic('camera'))+'<span class="badge">'+badge+(p.example?'<span class="pill">Ejemplo</span>':'')+'</span></button>'+
       '<div class="pbody"><h3>'+esc(p.name)+'</h3><span class="mdl">'+(p.model?'Modelo '+esc(p.model):'Sin modelo')+'</span>'+
-      '<div class="pprice"><b class="num">'+money(cents(p.price))+'</b>'+(p.cost!=null?'<small class="num">Compra '+money(cents(p.cost))+'</small>':'')+'</div>'+
+      '<div class="pprice"><b class="num">'+money(cents(p.price))+'</b>'+'</div>'+
       '<div class="stock'+st+'" role="img" aria-label="Disponibles '+a+' de '+qty+'"><i style="width:'+pct+'%"></i></div>'+
       '<div class="pfoot"><span>Disp. <b class="num">'+a+'</b> de '+qty+'</span><span>Vendidas <b class="num">'+s+'</b></span></div></div>'+
-      '<div class="pacts">'+margin+actsHTML('inv',p.id)+'</div></article>';
+      '<div class="pacts">'+actsHTML('inv',p.id)+'</div></article>';
   }).join('')+'</div>';
 }
 
@@ -986,7 +984,7 @@ function holderCell(P,h){
 }
 function monthCard(k){
   var r=calc(k),P=r.P;
-  var segs=[{l:'Costo de productos',v:r.T.cost,c:K.cost},{l:'Comisiones',v:r.ded?r.T.comm:0,c:K.comm},{l:'Gastos',v:r.T.exp,c:K.exp},{l:'Ganancia real',v:Math.max(0,r.real),c:K.real}];
+  var segs=[{l:'Comisiones',v:r.ded?r.T.comm:0,c:K.comm},{l:'Gastos',v:r.T.exp,c:K.exp},{l:'Ganancia',v:Math.max(0,r.profit),c:K.real}];
   var h='<div class="month-head"><h3 style="font-size:22px">'+mlabel(k)+'</h3></div><section class="card">'+
     '<div class="mcard-head"><small>Total de todas las ventas</small><div class="num">'+money(r.T.inc)+'</div></div>'+
     '<div class="how" style="padding-top:0">'+blocksHTML(segs,'var(--surface2)')+legendHTML(segs)+'</div>'+
@@ -998,10 +996,7 @@ function monthCard(k){
       (r.iva?'<div><dt>Incluye IVA a pagar</dt><dd class="num">'+money(r.iva)+'</dd></div>':'')+
       (r.pac?'<div><dt>Incluye pago a cuenta</dt><dd class="num">'+money(r.pac)+'</dd></div>':'')+
       '<div><dt>Comisiones'+(r.ded?'':' (no se descuentan)')+'</dt><dd class="num">'+money(r.T.comm)+'</dd></div>'+
-      '<div><dt>Ganancia antes del costo de productos</dt><dd class="num">'+money(r.profit)+'</dd></div>'+
-      '<div><dt>Costo de productos vendidos</dt><dd class="num">−'+money(r.T.cost)+'</dd></div>'+
-      (r.nocost?'<div class="badc"><dt>Ventas sin precio de compra</dt><dd class="num">'+r.nocost+'</dd></div>':'')+
-      '<div class="strong"><dt>'+(r.real<0?'Pérdida real del mes':'Ganancia real del mes')+'</dt><dd class="num">'+money(r.real)+'</dd></div>'+
+      '<div><dt>Ganancia del mes</dt><dd class="num">'+money(r.profit)+'</dd></div>'+
     '</dl>';
   var sk=Object.keys(r.sellers).sort(function(a,b){return r.sellers[b].sales-r.sellers[a].sales});
   if(sk.length){
@@ -1021,10 +1016,10 @@ function monthList(months){
   var rows=rs.map(function(o){var r=o.r,k=o.k;
     return '<button type="button" class="mrow" data-a="month" data-v="'+k+'" aria-label="Ver el detalle de '+mlabel(k)+'">'+
       '<span><b>'+mlabel(k)+'</b><small>'+plural(r.T.n,'venta','ventas')+' · gastos '+money(r.T.exp)+'</small></span>'+
-      '<span class="mval num">'+money(r.T.inc)+'<small class="'+(r.real<0?'neg':'')+'">'+(r.real<0?'Pérdida ':'Ganancia real ')+money(r.real)+'</small></span>'+
+      '<span class="mval num">'+money(r.T.inc)+'<small class="'+(r.profit<0?'neg':'')+'">'+(r.profit<0?'Pérdida ':'Ganancia ')+money(r.profit)+'</small></span>'+
       '<span class="bar"><i style="width:'+Math.round(r.T.inc/mx*100)+'%"></i></span></button>'}).join('');
   var a=calc('all');
-  return '<div class="group">'+rows+'</div><div class="mtotal"><span>Todos los meses</span><span class="num">Ventas '+money(a.T.inc)+' · real '+money(a.real)+'</span></div>';
+  return '<div class="group">'+rows+'</div><div class="mtotal"><span>Todos los meses</span><span class="num">Ventas '+money(a.T.inc)+' · ganancia '+money(a.profit)+'</span></div>';
 }
 function viewSummary(){
   var months=allMonths(),mo=monthSel();
@@ -1097,7 +1092,6 @@ function viewLiq(){
     '<div><dt>Gastos de las dos empresas</dt><dd class="num">−'+money(r.T.exp)+'</dd></div>'+
     '<div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div></dl>'+
     '<label class="switch"><span>Descontar comisiones de la ganancia<small>Se toma la comisión de quien tiene el dinero de esa venta. Si ya las pagan aparte, desmárcalo.</small></span><input type="checkbox" id="ded" data-a="ded"'+(r.ded?' checked':'')+'><i></i></label></section>';
-  if(r.T.cost)h+='<div class="note">'+ic('info')+'<span>Este reparto usa la ganancia antes del costo de los productos ('+money(r.T.cost)+'). Si ya registraste las compras de mercadería como gastos, está bien así. La ganancia real, restando el costo, es <b class="num">'+money(r.real)+'</b>.</span></div>';
   return h;
 }
 
