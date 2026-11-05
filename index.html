@@ -65,7 +65,7 @@ h1,h2,h3,p{margin:0}
 .ibtn.bad{color:var(--bad)}
 @media (hover:hover){.ibtn:hover{color:var(--brand)}.ibtn.bad:hover{background:var(--bad-soft)}}
 
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0));background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
 .nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;border:0;background:none;color:var(--ink3);font-size:11.5px;font-weight:600;border-radius:14px;transition:color .18s,transform .16s var(--ease)}
 .nav button .ic{width:23px;height:23px;transition:transform .28s var(--ease)}
 .nav button:active{transform:scale(.95)}
@@ -490,6 +490,23 @@ details[open] summary::after{transform:rotate(-135deg)}
 @media (min-width:700px){.seg2{grid-template-columns:repeat(5,1fr)}}
 .topbar{height:5px;border-radius:3px;background:var(--line);margin-top:5px;overflow:hidden;min-width:90px}.topbar i{display:block;height:100%;border-radius:3px;background:var(--brand)}
 @media print{.topbar{display:none}}
+
+@media (max-width:420px){.nav button{font-size:10.5px}}
+.av{width:48px;height:48px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font:800 16px var(--f-d);overflow:hidden;flex:none}.av img{width:100%;height:100%;object-fit:cover}.av.big{width:72px;height:72px;font-size:24px}
+.stlist{display:grid;gap:10px}
+.stcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:0;border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow);transition:transform .16s var(--ease)}.stcard:active{transform:scale(.985)}
+.stinfo{flex:1;min-width:0;display:grid;gap:3px}.stinfo b{font-size:15.5px}.stinfo small{color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stbadges{display:flex;gap:6px;flex-wrap:wrap}
+.rot{transform:rotate(-90deg);color:var(--ink3);width:20px;height:20px;flex:none}
+.stlink{margin-bottom:14px}.stlink h3{font:700 16px var(--f-d);margin-bottom:4px}
+.sthead{display:flex;gap:14px;align-items:center;margin-bottom:12px}.sthead h2{font:800 22px/1.15 var(--f-d)}
+.kv2{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 16px}.kv2 dt{font-size:12.5px;font-weight:700;color:var(--ink3)}.kv2 dd{margin:2px 0 0;font-weight:600;overflow-wrap:anywhere;white-space:pre-line}
+.mut{color:var(--ink3);font-weight:500}
+.jobrow{padding:10px 0;border-top:1px solid var(--line)}.jobrow:first-child{border-top:0;padding-top:0}.jobrow small{display:block;color:var(--ink3);margin-top:2px}
+.docgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.dchip{display:grid;gap:4px;text-align:left;padding:8px;border:0;border-radius:16px;background:var(--surface2);box-shadow:inset 0 0 0 1.5px var(--line)}.dchip small{color:var(--ink3);font-size:12px}.dchip b{font-size:13.5px}
+.dchip .dth{height:84px;border-radius:12px;background:var(--surface);display:grid;place-items:center;overflow:hidden;font-weight:800;color:var(--ink3)}.dchip .dth img{width:100%;height:100%;object-fit:cover}.dchip.off{opacity:.65}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
 </style>
 </head>
 <body>
@@ -568,6 +585,7 @@ var CHANNELS=['Tienda','Express de El Salvador','Aeromall de El Salvador'];
 var PAYS=['Efectivo','Transferencia','Tarjeta','Contra entrega'];
 var MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var NAV=[['home','Inicio','home'],['ventas','Ventas','cart'],['inventario','Inventario','box'],['gastos','Gastos','receipt'],['reportes','Reportes','chart']];
+NAV.push(['personal','Personal','user']);
 var IS_PWA=true;
 var HC={Importoys:'var(--c-oys)',Importshop:'var(--c-shop)',Bodega:'var(--c-bod)'};
 
@@ -729,7 +747,7 @@ function render(){
   $('#banner').innerHTML=bannerHTML();
   var h;
   if(!ready())h='<div class="empty"><div class="ico">'+ic('box')+'</div><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
-  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():S.rep==='top'?viewTop():viewLiq());
+  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='personal'?viewPersonal():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():S.rep==='top'?viewTop():viewLiq());
   var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   clearTimeout(freshT);
   if(S.anim&&ready()){view.classList.add('fresh');freshT=setTimeout(function(){view.classList.remove('fresh')},900)}else if(!S.anim){view.classList.remove('fresh')}
@@ -1437,6 +1455,182 @@ function openData(){
     (ios&&!standalone?'<p class="hint" style="margin-top:12px">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>':''),null);
 }
 
+/* ---------- personal de bodega (expedientes) ---------- */
+var STAFF_DOCS=[['foto','Foto personal'],['duiF','DUI por delante'],['duiR','DUI por detrás'],['nit','NIT'],['antecedentes','Antecedentes penales'],['solvencia','Solvencia policial']];
+S.staff=[];S.staffLoaded=false;S.staffErr=false;S.staffSel=null;S.staffDel=null;
+function idb(){return new Promise(function(res,rej){
+  if(S._idb)return res(S._idb);
+  if(!window.indexedDB)return rej(new Error('noidb'));
+  var r=indexedDB.open('importoys-personal',1);
+  r.onupgradeneeded=function(){r.result.createObjectStore('staff',{keyPath:'id'})};
+  r.onsuccess=function(){S._idb=r.result;res(r.result)};r.onerror=function(){rej(r.error)};
+})}
+function idbOp(mode,fn){return idb().then(function(db){return new Promise(function(res,rej){
+  var tx=db.transaction('staff',mode),rq=fn(tx.objectStore('staff'));
+  tx.oncomplete=function(){res(rq&&rq.result)};tx.onerror=tx.onabort=function(){rej(tx.error)};
+})})}
+function loadStaff(){
+  if(S.staffLoading)return;S.staffLoading=true;
+  idbOp('readonly',function(st){return st.getAll()}).then(function(a){S.staff=a||[];S.staffLoaded=true;S.staffLoading=false;render()})
+   .catch(function(){S.staff=[];S.staffErr=true;S.staffLoaded=true;S.staffLoading=false;render()});
+}
+function staffPut(list){return idbOp('readwrite',function(st){list.forEach(function(r){st.put(r)})})}
+function staffById(id){return S.staff.filter(function(r){return r.id===id})[0]}
+function sdocs(r){var d=(r.data&&r.data.docs)||{};return STAFF_DOCS.filter(function(x){return d[x[0]]&&d[x[0]].data}).length}
+function initials(n){var p=String(n||'?').trim().split(/\s+/);return ((p[0]||'?')[0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase()}
+function avatar(r,big){var f=r.data&&r.data.docs&&r.data.docs.foto;return '<div class="av'+(big?' big':'')+'">'+(f&&f.data?'<img alt="" src="'+esc(f.data)+'">':esc(initials(r.data&&r.data.nombre)))+'</div>'}
+function staffLink(){try{return new URL('empleado.html',location.href).href}catch(e){return 'empleado.html'}}
+function age(iso){if(!iso)return '';var b=new Date(iso+'T00:00:00'),n=new Date();if(isNaN(b))return '';var a=n.getFullYear()-b.getFullYear();if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;return a>=0&&a<110?a+' años':''}
+function kvRow(l,v){return '<div><dt>'+l+'</dt><dd>'+(v?esc(v):'<span class="mut">—</span>')+'</dd></div>'}
+
+function viewPersonal(){
+  if(!S.staffLoaded){loadStaff();return '<div class="empty"><div class="ico">'+ic('user')+'</div><strong>Cargando personal…</strong></div>'}
+  if(S.staffErr)return emptyBox('alert','No se puede guardar aquí','Este navegador no permite guardar expedientes (¿modo privado?). Abre la app en una ventana normal.');
+  var r=S.staffSel&&staffById(S.staffSel);
+  return r?staffDetail(r):staffList();
+}
+function staffList(){
+  var l=S.staff.slice().sort(function(a,b){return String(a.data&&a.data.nombre).localeCompare(String(b.data&&b.data.nombre),'es')});
+  var act=l.filter(function(r){return r.estado!=='retirado'}).length;
+  var h='<div class="sec-head"><div><h2>Personal de bodega</h2><p class="sub">'+plural(act,'empleado activo','empleados activos')+(l.length>act?' · '+(l.length-act)+' retirados':'')+'</p></div><button class="btn" type="button" data-a="staff-import">'+ic('upload')+'Importar expediente</button></div>';
+  h+='<section class="card pad stlink"><h3>Formulario para el empleado</h3><p class="sub">Envíale este enlace. Él llena sus datos, descarga un archivo y te lo manda por WhatsApp. Tú lo cargas aquí con «Importar expediente».</p><div class="acts-bar"><button class="btn sm" type="button" data-a="staff-wa" style="background:#1FA855;box-shadow:none">'+ic('share')+'Enviar enlace por WhatsApp</button><button class="btn ghost sm" type="button" data-a="staff-link">'+ic('copy')+'Copiar enlace</button></div></section>';
+  if(!l.length)return h+emptyBox('user','Aún no hay expedientes','Cuando un empleado te envíe su archivo, toca «Importar expediente» y aparecerá aquí.');
+  h+='<div class="stlist">'+l.map(function(r){var d=r.data||{},n=sdocs(r);
+    return '<button type="button" class="stcard" data-a="staff-open" data-id="'+r.id+'">'+avatar(r)+'<div class="stinfo"><b>'+esc(d.nombre||'Sin nombre')+'</b><small>'+esc(r.cargo||'Sin cargo asignado')+(d.telefono?' · '+esc(d.telefono):'')+'</small><span class="stbadges">'+(r.estado==='retirado'?'<span class="pill bad">Retirado</span>':'<span class="pill ok">Activo</span>')+'<span class="pill'+(n===STAFF_DOCS.length?' ok':'')+'">Documentos '+n+'/'+STAFF_DOCS.length+'</span></span></div>'+ic('chev','rot')+'</button>'}).join('')+'</div>';
+  h+='<div class="acts-bar" style="margin-top:16px"><button class="btn ghost sm" type="button" data-a="staff-backup">'+ic('download')+'Respaldo del personal</button></div><p class="hint" style="margin-top:8px">Los expedientes se guardan solo en este dispositivo. Descarga el respaldo de vez en cuando; para restaurarlo usa «Importar expediente».</p>';
+  return h;
+}
+function staffDetail(r){
+  var d=r.data||{},dc=d.docs||{};
+  var h='<div class="sec-head"><div><button type="button" class="lk" data-a="staff-back">'+ic('back')+' Volver al personal</button></div></div>';
+  h+='<section class="card pad sthead">'+avatar(r,true)+'<div><h2>'+esc(d.nombre||'Sin nombre')+'</h2><p class="sub">'+esc(r.cargo||'Sin cargo asignado')+'</p><span class="stbadges">'+(r.estado==='retirado'?'<span class="pill bad">Retirado</span>':'<span class="pill ok">Activo</span>')+'</span></div></section>';
+  h+='<div class="acts-bar"><button class="btn sm" type="button" data-a="staff-pdf" data-id="'+r.id+'">'+ic('download')+'Expediente en PDF</button><button class="btn ghost sm" type="button" data-a="staff-edit" data-id="'+r.id+'">'+ic('edit')+'Datos de empleo</button>'+
+    (S.staffDel===r.id?'<button class="btn sm" type="button" data-a="staff-del" data-id="'+r.id+'" style="background:var(--bad);box-shadow:none">Sí, eliminar</button><button class="btn ghost sm" type="button" data-a="staff-delno">No</button>':'<button class="btn ghost sm" type="button" data-a="staff-del" data-id="'+r.id+'">'+ic('trash')+'Eliminar</button>')+'</div>';
+  h+='<div class="sec-title">Datos personales</div><section class="card pad"><dl class="kv2">'+kvRow('Nombre completo',d.nombre)+kvRow('Fecha de nacimiento',d.nacimiento?fdate(d.nacimiento)+(age(d.nacimiento)?' · '+age(d.nacimiento):''):'')+kvRow('Teléfono',d.telefono)+kvRow('Correo',d.correo)+kvRow('DUI',d.dui)+kvRow('NIT',d.nit)+kvRow('ISSS',d.isss)+kvRow('AFP',d.afp)+kvRow('Estado civil',d.estadoCivil)+'</dl></section>';
+  h+='<div class="sec-title">Dirección</div><section class="card pad"><dl class="kv2">'+kvRow('Dirección exacta',d.direccion)+kvRow('Municipio',d.municipio)+kvRow('Departamento',d.departamento)+'</dl></section>';
+  h+='<div class="sec-title">Contactos de emergencia</div><section class="card pad"><dl class="kv2">'+kvRow('Contacto 1',[d.e1n,d.e1p&&'('+d.e1p+')',d.e1t].filter(Boolean).join(' '))+kvRow('Contacto 2',[d.e2n,d.e2p&&'('+d.e2p+')',d.e2t].filter(Boolean).join(' '))+'</dl></section>';
+  h+='<div class="sec-title">Perfil</div><section class="card pad"><dl class="kv2">'+kvRow('Introducción',d.intro)+kvRow('Estudios y habilidades',d.estudios)+'</dl></section>';
+  h+='<div class="sec-title">Trabajos anteriores</div><section class="card pad">'+((d.trabajos||[]).length?(d.trabajos||[]).map(function(j){return '<div class="jobrow"><b>'+esc(j.puesto||'Puesto sin indicar')+'</b> · '+esc(j.empresa||'Empresa sin indicar')+'<small>'+esc([j.desde,j.hasta].filter(Boolean).join(' a '))+(j.motivo?' · Salida: '+esc(j.motivo):'')+(j.tel?' · Ref. '+esc(j.tel):'')+'</small></div>'}).join(''):'<p class="mut">No indicó trabajos anteriores.</p>')+'</section>';
+  h+='<div class="sec-title">Datos de empleo</div><section class="card pad"><dl class="kv2">'+kvRow('Cargo',r.cargo)+kvRow('Fecha de ingreso',r.ingreso?fdate(r.ingreso):'')+kvRow('Salario',r.salario?money(cents(r.salario)):'')+kvRow('Notas',r.notas)+'</dl></section>';
+  h+='<div class="sec-title">Documentos</div><section class="card pad"><div class="docgrid">'+STAFF_DOCS.map(function(x){var f=dc[x[0]];
+    if(!f||!f.data)return '<div class="dchip off"><div class="dth">'+ic('x')+'</div><b>'+x[1]+'</b><small>No presentado</small></div>';
+    return '<button type="button" class="dchip" data-a="staff-doc" data-id="'+r.id+'" data-k="'+x[0]+'"><div class="dth">'+(f.type==='application/pdf'?'PDF':'<img alt="" src="'+esc(f.data)+'">')+'</div><b>'+x[1]+'</b><small>Toca para ver</small></button>'}).join('')+'</div></section>';
+  return h;
+}
+function openStaffEdit(id){
+  var r=staffById(id);if(!r)return;
+  var html='<form id="f" data-kind="staff" novalidate>'+
+   '<div class="fld"><label for="f-cargo">Cargo o puesto</label><input id="f-cargo" name="cargo" type="text" autocomplete="off" value="'+esc(r.cargo||'')+'"></div>'+
+   '<div class="grid2"><div class="fld"><label for="f-ing">Fecha de ingreso</label><input id="f-ing" name="ingreso" type="date" value="'+esc(r.ingreso||'')+'"></div>'+
+   '<div class="fld"><label for="f-sal">Salario ($)</label><input id="f-sal" name="salario" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(r.salario||'')+'"></div></div>'+
+   '<div class="fld"><span class="lbl">Estado</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="estado" value="activo"'+(r.estado!=='retirado'?' checked':'')+'><span>Activo</span></label><label class="seg"><input type="radio" name="estado" value="retirado"'+(r.estado==='retirado'?' checked':'')+'><span>Retirado</span></label></div></div>'+
+   '<div class="fld"><label for="f-notas">Notas internas</label><textarea id="f-notas" name="notas" rows="3">'+esc(r.notas||'')+'</textarea></div>'+formFoot()+'</form>';
+  openSheet('Datos de empleo',html,async function(fd){
+    var n=Object.assign({},r,{cargo:String(fd.get('cargo')||'').trim(),ingreso:String(fd.get('ingreso')||''),salario:fd.get('salario')===''?'':num(fd.get('salario')),estado:fd.get('estado')||'activo',notas:String(fd.get('notas')||'').trim()});
+    try{await staffPut([n])}catch(e){return 'No se pudo guardar. Intenta de nuevo.'}
+    S.staff=S.staff.map(function(x){return x.id===n.id?n:x});toast('Datos guardados');return null;
+  });
+}
+async function importStaff(files){
+  var add=0,upd=0,bad=0,put=[];
+  for(var i=0;i<files.length;i++){
+    var o=null;try{o=JSON.parse(await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsText(files[i])}))}catch(e){bad++;continue}
+    var items=o&&o.app==='importoys-expediente'?[o]:o&&o.app==='importoys-personal-respaldo'&&Array.isArray(o.items)?o.items:null;
+    if(!items){bad++;continue}
+    items.forEach(function(it){
+      if(!it||!it.id||!it.data||typeof it.data!=='object'){bad++;return}
+      var dui=String(it.data.dui||'').replace(/\D/g,'');
+      var ex=S.staff.concat(put).filter(function(r){return r.id===it.id||(dui&&String(r.data&&r.data.dui||'').replace(/\D/g,'')===dui)})[0];
+      var full=it.estado!==undefined||it.cargo!==undefined;
+      var rec=full?{id:it.id,data:it.data,cargo:it.cargo||'',ingreso:it.ingreso||'',salario:it.salario||'',estado:it.estado||'activo',notas:it.notas||'',at:it.at||Date.now()}
+        :ex?Object.assign({},ex,{data:it.data}):{id:it.id,data:it.data,cargo:'',ingreso:'',salario:'',estado:'activo',notas:'',at:Date.now()};
+      if(ex&&ex.id!==rec.id)rec.id=ex.id;
+      if(ex)upd++;else add++;
+      put=put.filter(function(p){return p.id!==rec.id});put.push(rec);
+    });
+  }
+  if(put.length){try{await staffPut(put)}catch(e){toast('No se pudo guardar. Intenta de nuevo.',true);return}
+    put.forEach(function(rec){var k=-1;S.staff.forEach(function(x,j){if(x.id===rec.id)k=j});if(k>=0)S.staff[k]=rec;else S.staff.push(rec)})}
+  S.anim=true;render();
+  toast(put.length?(add?plural(add,'expediente nuevo','expedientes nuevos'):'')+(add&&upd?' y ':'')+(upd?plural(upd,'actualizado','actualizados'):'')+(bad?' · '+bad+' no válidos':''):'Ese archivo no es un expediente válido.',!put.length);
+}
+function dlBlob(blob,name){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},6000)}
+function slugName(s){return String(s||'empleado').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'empleado'}
+async function openStaffDoc(id,k){
+  var r=staffById(id),f=r&&r.data&&r.data.docs&&r.data.docs[k];if(!f)return;
+  try{var b=await (await fetch(f.data)).blob(),u=URL.createObjectURL(b);if(!window.open(u,'_blank'))dlBlob(b,f.name||k);setTimeout(function(){URL.revokeObjectURL(u)},60000)}catch(e){toast('No se pudo abrir el documento.',true)}
+}
+
+async function staffPdf(r){
+  await loadPdfLibs();
+  var L=window.PDFLib,doc=await L.PDFDocument.create(),F=await doc.embedFont(L.StandardFonts.Helvetica),FB=await doc.embedFont(L.StandardFonts.HelveticaBold);
+  var PW=595.28,PH=841.89,M=40,page,y,own=[];
+  var NAVY=[15,31,82],BLUE=[36,89,224],GRAY=[96,110,145],DARK=[13,27,63],LIGHT=[232,238,255],OK=[18,128,92],BAD=[214,48,74];
+  var d=r.data||{},dc=d.docs||{};
+  var rgb=function(a){return L.rgb(a[0]/255,a[1]/255,a[2]/255)};
+  var np=function(){page=doc.addPage([PW,PH]);own.push(page);y=M;return page};
+  var wid=function(s,z,b){return (b?FB:F).widthOfTextAtSize(CL(s),z)};
+  var txt=function(s,x,top,z,b,col){page.drawText(CL(s),{x:x,y:PH-top-z*0.85,size:z,font:b?FB:F,color:rgb(col||DARK)})};
+  var rect=function(x,top,w,h,col){page.drawRectangle({x:x,y:PH-top-h,width:w,height:h,color:rgb(col)})};
+  var wrap=function(s,z,b,w){
+    var out=[];String(s==null?'':s).split(/\r?\n/).forEach(function(par){
+      var cur='';CL(par).split(' ').forEach(function(wd){
+        while(wid(wd,z,b)>w&&wd.length>1){var n=wd.length;while(n>1&&wid(wd.slice(0,n),z,b)>w)n--;if(cur){out.push(cur);cur=''}out.push(wd.slice(0,n));wd=wd.slice(n)}
+        var t=cur?cur+' '+wd:wd;if(wid(t,z,b)<=w||!cur)cur=t;else{out.push(cur);cur=wd}});
+      out.push(cur)});return out};
+  var need=function(h){if(y+h>PH-M-18)np()};
+  var sect=function(t){need(60);y+=8;rect(M,y,4,16,BLUE);txt(t,M+11,y+1,12.5,true);y+=26};
+  var bytes=function(u){var b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a};
+  var emb=function(u){return /^data:image\/png/.test(u)?doc.embedPng(bytes(u)):doc.embedJpg(bytes(u))};
+  var kv=function(pairs){
+    var cw=(PW-2*M-16)/2,z=10,i=0;
+    while(i<pairs.length){
+      var row=[pairs[i],pairs[i+1]].filter(Boolean),lines=row.map(function(p){return wrap(p[1]||'-',z,true,cw)}),h=Math.max.apply(null,lines.map(function(l){return l.length}))*13+22;
+      need(h);
+      row.forEach(function(p,j){var x=M+j*(cw+16);txt(p[0],x,y,8.5,false,GRAY);lines[j].forEach(function(ln,k){txt(ln,x,y+13+k*13,z,true)})});
+      y+=h;i+=2;
+    }
+  };
+  var full=function(label,val){var z=10,w=PW-2*M,ls=wrap(val||'-',z,false,w);need(ls.length*13+24);txt(label,M,y,8.5,false,GRAY);ls.forEach(function(ln,k){txt(ln,M,y+13+k*13,z,false)});y+=ls.length*13+22};
+  /* portada */
+  np();rect(0,0,PW,118,NAVY);
+  var ph=dc.foto&&dc.foto.data&&dc.foto.type!=='application/pdf'?await emb(dc.foto.data).catch(function(){return null}):null;
+  if(ph){var s=Math.min(78/ph.width,78/ph.height);rect(PW-M-84,17,84,84,[255,255,255]);page.drawImage(ph,{x:PW-M-81+(78-ph.width*s)/2,y:PH-20-78+(78-ph.height*s)/2,width:ph.width*s,height:ph.height*s})}
+  txt('Expediente del empleado',M,24,10.5,false,[190,205,255]);
+  var nl=wrap(d.nombre||'Sin nombre',22,true,PW-2*M-(ph?100:0));txt(nl[0],M,42,22,true,[255,255,255]);if(nl[1])txt(nl[1],M,68,22,true,[255,255,255]);
+  txt((r.cargo||'Cargo sin asignar')+'   |   '+(r.estado==='retirado'?'Retirado':'Activo'),M,nl[1]?98:76,11,false,[255,194,46]);
+  y=138;
+  sect('Datos personales');
+  kv([['Nombre completo',d.nombre],['Fecha de nacimiento',d.nacimiento?fdate(d.nacimiento)+(age(d.nacimiento)?' ('+age(d.nacimiento)+')':''):''],['DUI',d.dui],['NIT',d.nit],['Teléfono',d.telefono],['Correo',d.correo],['ISSS',d.isss],['AFP',d.afp],['Estado civil',d.estadoCivil]]);
+  sect('Dirección');full('Dirección exacta',d.direccion);kv([['Municipio',d.municipio],['Departamento',d.departamento]]);
+  sect('Contactos de emergencia');
+  kv([['Contacto 1',d.e1n],['Parentesco y teléfono',[d.e1p,d.e1t].filter(Boolean).join('  -  ')],['Contacto 2',d.e2n],['Parentesco y teléfono',[d.e2p,d.e2t].filter(Boolean).join('  -  ')]]);
+  sect('Datos de empleo');kv([['Cargo',r.cargo],['Fecha de ingreso',r.ingreso?fdate(r.ingreso):''],['Estado',r.estado==='retirado'?'Retirado':'Activo']]);
+  if(d.intro||d.estudios){sect('Perfil');if(d.intro)full('Introducción',d.intro);if(d.estudios)full('Estudios y habilidades',d.estudios)}
+  sect('Trabajos anteriores');
+  if((d.trabajos||[]).length)d.trabajos.forEach(function(j,i){
+    var l2=[[j.desde,j.hasta].filter(Boolean).join(' a '),j.motivo&&'Salida: '+j.motivo,j.tel&&'Ref. '+j.tel].filter(Boolean).join('   |   '),a=wrap((j.puesto||'Puesto sin indicar')+' - '+(j.empresa||'Empresa sin indicar'),10,true,PW-2*M-16),b=l2?wrap(l2,9,false,PW-2*M-16):[],h=a.length*13+b.length*12+14;
+    need(h);rect(M,y,PW-2*M,h-4,[246,248,253]);a.forEach(function(ln,k){txt(ln,M+8,y+5+k*13,10,true)});b.forEach(function(ln,k){txt(ln,M+8,y+5+a.length*13+k*12,9,false,GRAY)});y+=h;
+  });else{txt('No indicó trabajos anteriores.',M,y,10,false,GRAY);y+=20}
+  sect('Documentos entregados');
+  STAFF_DOCS.forEach(function(x){var ok=dc[x[0]]&&dc[x[0]].data;need(20);txt(x[1],M+4,y,10,false);txt(ok?'Presentado':'No presentado',PW-M-4-wid(ok?'Presentado':'No presentado',10,true),y,10,true,ok?OK:BAD);page.drawLine({start:{x:M,y:PH-y-16},end:{x:PW-M,y:PH-y-16},thickness:.5,color:rgb([227,232,244])});y+=21});
+  /* documentos adjuntos */
+  for(var i=0;i<STAFF_DOCS.length;i++){
+    var k=STAFF_DOCS[i][0],f=dc[k];if(!f||!f.data||k==='foto'&&f.type!=='application/pdf'&&false)continue;
+    if(f.type==='application/pdf'){
+      np();txt('Documento: '+STAFF_DOCS[i][1],M,M,14,true);txt('Se adjunta el PDF original en las páginas siguientes.',M,M+24,10,false,GRAY);
+      try{var src=await L.PDFDocument.load(bytes(f.data),{ignoreEncryption:true}),pg=await doc.copyPages(src,src.getPageIndices());pg.forEach(function(p){doc.addPage(p)})}
+      catch(e){txt('No se pudo incluir este PDF.',M,M+44,10,true,BAD)}
+    }else{
+      np();txt('Documento: '+STAFF_DOCS[i][1],M,M,14,true);
+      try{var im=await emb(f.data),bw=PW-2*M,bh=PH-2*M-50,sc=Math.min(bw/im.width,bh/im.height),w=im.width*sc,h=im.height*sc;
+        page.drawImage(im,{x:M+(bw-w)/2,y:PH-M-40-h,width:w,height:h})}catch(e){txt('No se pudo incluir esta imagen.',M,M+24,10,true,BAD)}
+    }
+  }
+  own.forEach(function(p,i){var s=CL('Expediente de '+(d.nombre||'')+'   |   Página '+(i+1)+' de '+own.length);p.drawText(s,{x:PW-M-F.widthOfTextAtSize(s,8),y:20,size:8,font:F,color:rgb(GRAY)})});
+  dlBlob(new Blob([await doc.save()],{type:'application/pdf'}),'expediente-'+slugName(d.nombre)+'.pdf');
+}
+
 
 /* ---------- eventos ---------- */
 var COL={sale:'sales',inv:'inventory',exp:'expenses'};
@@ -1517,6 +1711,21 @@ document.addEventListener('click',async function(ev){
       t.setAttribute('aria-expanded',op);if(box)box.classList.toggle('open',op);break}
     
     case 'data':openData();break;
+    case 'staff-open':S.staffSel=id;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
+    case 'staff-back':S.staffSel=null;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
+    case 'staff-import':{var inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';inp.multiple=true;inp.onchange=function(){if(inp.files&&inp.files.length)importStaff(Array.prototype.slice.call(inp.files))};inp.click();break}
+    case 'staff-link':{var lk=staffLink();try{await navigator.clipboard.writeText(lk);toast('Enlace copiado')}catch(_){S.copy=lk;toast(lk)}break}
+    case 'staff-wa':window.open('https://wa.me/?text='+encodeURIComponent('Hola, por favor llena tu expediente de personal en este enlace y envíame el archivo que se descarga al guardar: '+staffLink()),'_blank','noopener');break;
+    case 'staff-edit':openStaffEdit(id);break;
+    case 'staff-doc':openStaffDoc(id,t.dataset.k);break;
+    case 'staff-delno':S.staffDel=null;render();break;
+    case 'staff-del':
+      if(S.staffDel!==id){S.staffDel=id;render();break}
+      try{await idbOp('readwrite',function(st){st.delete(id)});S.staff=S.staff.filter(function(x){return x.id!==id});S.staffSel=null;S.staffDel=null;toast('Expediente eliminado');render()}catch(e){toast('No se pudo eliminar.',true)}
+      break;
+    case 'staff-pdf':{var rr0=staffById(id);if(!rr0)break;toast('Preparando el expediente…');
+      try{await staffPdf(rr0);toast('PDF listo')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
+    case 'staff-backup':dlBlob(new Blob([JSON.stringify({app:'importoys-personal-respaldo',v:1,saved:new Date().toISOString(),items:S.staff})],{type:'application/json'}),'respaldo-personal-'+today()+'.json');toast('Respaldo descargado');break;
     case 'install':
       if(deferredInstall){deferredInstall.prompt();try{await deferredInstall.userChoice}catch(_){}deferredInstall=null;closeSheet()}
       break;

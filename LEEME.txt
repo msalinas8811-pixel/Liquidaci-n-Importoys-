@@ -30,3 +30,11 @@ SUS DATOS
 ACTUALIZAR LA APP
 - Sube de nuevo los archivos al mismo sitio. En sw.js, cambia
   ventas-v1 por ventas-v2 para forzar la actualización.
+
+PERSONAL DE BODEGA (expedientes)
+- Sube también empleado.html. Es el formulario que le envías al empleado
+  (enlace: la misma dirección de tu app, terminando en /empleado.html).
+- El empleado llena sus datos, guarda y envía por WhatsApp el archivo .json.
+- En tu app: pestaña Personal > Importar expediente. Desde ahí sacas el
+  expediente en PDF. Los expedientes se guardan solo en tu dispositivo:
+  usa "Respaldo del personal" de vez en cuando.
