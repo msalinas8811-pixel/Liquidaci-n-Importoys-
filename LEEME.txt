@@ -38,3 +38,10 @@ PERSONAL DE BODEGA (expedientes)
 - En tu app: pestaña Personal > Importar expediente. Desde ahí sacas el
   expediente en PDF. Los expedientes se guardan solo en tu dispositivo:
   usa "Respaldo del personal" de vez en cuando.
+
+RESERVACIONES
+- Ventas > Reservaciones. Cada reserva aparta el producto del inventario.
+- Recibo en PDF (2 copias por hoja), "Retirar y cobrar saldo" la pasa a
+  Ventas, y "Cancelar reserva" decide a quién pasa el anticipo.
+- El reporte Diario muestra las reservas pendientes con lo que dejó el
+  cliente, lo que resta y la fecha de retiro.

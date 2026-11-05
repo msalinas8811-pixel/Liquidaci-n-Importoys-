@@ -507,6 +507,10 @@ details[open] summary::after{transform:rotate(-135deg)}
 .dchip{display:grid;gap:4px;text-align:left;padding:8px;border:0;border-radius:16px;background:var(--surface2);box-shadow:inset 0 0 0 1.5px var(--line)}.dchip small{color:var(--ink3);font-size:12px}.dchip b{font-size:13.5px}
 .dchip .dth{height:84px;border-radius:12px;background:var(--surface);display:grid;place-items:center;overflow:hidden;font-weight:800;color:var(--ink3)}.dchip .dth img{width:100%;height:100%;object-fit:cover}.dchip.off{opacity:.65}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
+
+.seg2.two{grid-template-columns:1fr 1fr!important;margin-bottom:12px}
+.mchip.late{background:var(--bad-soft);color:var(--bad)}
+.r-foot.rfx{flex-wrap:wrap;gap:10px}.rbar{display:flex;flex-wrap:wrap;gap:8px;margin:0!important;align-items:center}
 </style>
 </head>
 <body>
@@ -609,7 +613,7 @@ var plural=function(n,a,b){return n+' '+(n===1?a:b)};
 var REDUCED=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 function ic(n,c){return '<svg class="ic'+(c?' '+c:'')+'" aria-hidden="true"><use href="#i-'+n+'"/></svg>'}
 
-var S={db:null,err:null,inv:[],sales:[],exp:[],cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,cred:false,pac:false},credit:{},creditDocs:[],pac:{},settled:{},restore:null,
+var S={db:null,err:null,inv:[],sales:[],exp:[],res:[],vsub:'ventas',rq:'',rf:'pendiente',cfg:{deduct:true},loaded:{inv:false,sales:false,exp:false,res:false,cred:false,pac:false},credit:{},creditDocs:[],pac:{},settled:{},restore:null,
   tab:'home',rep:'dia',month:null,reveal:true,anim:true,hf:'all',q:'',iq:'',liq:null,open:new Set(),del:null,copy:null};
 
 /* ---------- datos ---------- */
@@ -632,6 +636,7 @@ async function init(){
   S.db.collection('inventory').onSnapshot(function(s){S.inv=mapDocs(s);S.loaded.inv=true;sched()},bad);
   S.db.collection('sales').onSnapshot(function(s){S.sales=mapDocs(s);S.loaded.sales=true;sched()},bad);
   S.db.collection('expenses').onSnapshot(function(s){S.exp=mapDocs(s);S.loaded.exp=true;sched()},bad);
+  S.db.collection('reservations').onSnapshot(function(s){S.res=mapDocs(s);S.loaded.res=true;sched()},bad);
   S.db.collection('ivaCredit').onSnapshot(function(s){S.creditDocs=mapDocs(s);S.credit={};S.creditDocs.forEach(function(d){S.credit[d.id]=Number(d.amount)||0});S.loaded.cred=true;sched()},bad);
   S.db.collection('pacManual').onSnapshot(function(s){S.pac={};mapDocs(s).forEach(function(d){S.pac[d.id]=Number(d.amount)||0});S.loaded.pac=true;sched()},bad);
   S.db.collection('settled').onSnapshot(function(s){S.settled={};mapDocs(s).forEach(function(d){S.settled[d.id]=d});sched()},function(){});
@@ -640,7 +645,8 @@ async function init(){
 
 /* ---------- cálculos ---------- */
 function sold(pid,exceptId){var t=0;S.sales.forEach(function(s){if(s.productId===pid&&s.id!==exceptId)t+=parseInt(s.qty,10)||0});return t}
-function avail(p,exceptId){return (parseInt(p.qty,10)||0)-sold(p.id,exceptId)}
+function reserved(pid,exceptRes){var t=0;S.res.forEach(function(r){if(r.status==='pendiente'&&r.productId===pid&&r.id!==exceptRes)t+=parseInt(r.qty,10)||0});return t}
+function avail(p,exceptId,exceptRes){return (parseInt(p.qty,10)||0)-sold(p.id,exceptId)-reserved(p.id,exceptRes)}
 function photoOf(pid){for(var i=0;i<S.inv.length;i++)if(S.inv[i].id===pid)return S.inv[i].photo||'';return ''}
 function thumb(src){return src?'<img class="thumb" src="'+esc(src)+'" alt="" loading="lazy">':'<div class="thumb">'+ic('box')+'</div>'}
 function monthSel(){var m=allMonths();if(S.month==='all')return 'all';if(S.month&&m.indexOf(S.month)>=0)return S.month;return m[0]||'all'}
@@ -654,7 +660,7 @@ function monthBar(kind){
     '<button type="button" class="chip'+(sel==='all'?' on':'')+'" aria-pressed="'+(sel==='all')+'" data-a="month" data-v="all">Todos</button>'+
     ms.map(function(k){return '<button type="button" class="chip'+(sel===k?' on':'')+'" aria-pressed="'+(sel===k)+'" data-a="month" data-v="'+k+'">'+mshort(k)+' <span class="num">'+money(tot[k]||0)+'</span></button>'}).join('')+'</div></div>';
 }
-function allMonths(){var m={};S.sales.forEach(function(s){if(s.date)m[mkey(s.date)]=1});allExp().forEach(function(e){if(e.date)m[mkey(e.date)]=1});return Object.keys(m).sort().reverse()}
+function allMonths(){var m={};S.sales.forEach(function(s){if(s.date)m[mkey(s.date)]=1});S.res.forEach(function(r){if(r.status==='cancelada'&&!r.refund&&r.cancelDate)m[mkey(r.cancelDate)]=1});allExp().forEach(function(e){if(e.date)m[mkey(e.date)]=1});return Object.keys(m).sort().reverse()}
 function cmpSale(a,b){return String(b.date).localeCompare(String(a.date))||(b.createdAt||0)-(a.createdAt||0)}
 
 function calc(key){
@@ -663,14 +669,18 @@ function calc(key){
   var sellers={},nc=0,units=0;
   S.sales.filter(function(s){return inM(s.date)}).forEach(function(s){
     var h=P[s.holder]||P.Bodega,v=net(s),c=cents(s.commission);
-    h.inc+=v;h.comm+=c;h.n++;h.list.push(s);h.cost+=costOf(s);if(!costKnown(s))nc++;units+=parseInt(s.qty,10)||0;
+    var dp=cents(s.dep),dh=(dp>0&&dp<=v&&s.depHolder&&P[s.depHolder]&&s.depHolder!==s.holder)?P[s.depHolder]:null;
+    if(dh){dh.inc+=dp;h.inc+=v-dp}else h.inc+=v;
+    h.comm+=c;h.n++;h.list.push(s);h.cost+=costOf(s);if(!costKnown(s))nc++;units+=parseInt(s.qty,10)||0;
     var k=String(s.seller||'').trim()||'Sin vendedor';
     var o=sellers[k]||(sellers[k]={n:0,sales:0,comm:0});o.n++;o.sales+=v;o.comm+=c;
   });
+  var ret=0;S.res.forEach(function(r){if(r.status==='cancelada'&&!r.refund&&r.keepTo&&inM(r.cancelDate)){var kh=P[r.keepTo]||P.Importoys;kh.inc+=cents(r.deposit);ret+=cents(r.deposit)}});
   var iva=0,pac=0;
   allExp().filter(function(e){return inM(e.date)}).forEach(function(e){var c=cents(e.amount);(P[e.who]||P.Importoys).exp+=c;if(e.auto){if(e.kind==='pac')pac+=c;else iva+=c}});
   var ded=S.cfg.deduct!==false,T={inc:0,comm:0,exp:0,n:0,cost:0};
   HOLDERS.forEach(function(h){T.inc+=P[h].inc;T.comm+=P[h].comm;T.exp+=P[h].exp;T.n+=P[h].n;T.cost+=P[h].cost});
+  T.ret=ret;
   var profit=T.inc-(ded?T.comm:0)-T.exp;
   HOLDERS.forEach(function(h){P[h].bal=P[h].inc-(ded?P[h].comm:0)-P[h].exp});
   var half=Math.floor(profit/2);
@@ -695,7 +705,7 @@ function sched(){if(pending)return;pending=true;requestAnimationFrame(render)}
 function buildNav(){
   $('#nav').innerHTML=NAV.map(function(t){return '<button type="button" data-a="tab" data-v="'+t[0]+'" aria-label="'+t[1]+'">'+ic(t[2])+'<span>'+t[1]+'</span></button>'}).join('');
 }
-function ready(){return S.err==='nodb'||(S.loaded.inv&&S.loaded.sales&&S.loaded.exp&&S.loaded.cred&&S.loaded.pac)}
+function ready(){return S.err==='nodb'||(S.loaded.inv&&S.loaded.sales&&S.loaded.exp&&S.loaded.res&&S.loaded.cred&&S.loaded.pac)}
 var toastT;
 function toast(msg,bad){var t=$('#toast');t.innerHTML=(bad?ic('alert'):ic('check'))+'<span>'+esc(msg)+'</span>';t.className='toast show'+(bad?' bad':'');clearTimeout(toastT);toastT=setTimeout(function(){t.className='toast'},2800)}
 function curTheme(){return document.documentElement.dataset.theme||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light')}
@@ -747,7 +757,7 @@ function render(){
   $('#banner').innerHTML=bannerHTML();
   var h;
   if(!ready())h='<div class="empty"><div class="ico">'+ic('box')+'</div><strong>Cargando datos…</strong><span>Esto tarda unos segundos.</span></div>';
-  else h=S.tab==='home'?viewHome():S.tab==='ventas'?viewSales():S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='personal'?viewPersonal():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():S.rep==='top'?viewTop():viewLiq());
+  else h=S.tab==='home'?viewHome():S.tab==='ventas'?(S.vsub==='res'?viewRes():viewSales()):S.tab==='inventario'?viewInv():S.tab==='gastos'?viewExp():S.tab==='personal'?viewPersonal():S.rep==='res'?viewReports(viewSummary()):viewReports(S.rep==='dia'?viewDia():S.rep==='cierre'?viewCierre():S.rep==='top'?viewTop():viewLiq());
   var sc0=view.querySelector('.monthbar .chips'),sl0=sc0?sc0.scrollLeft:0;
   clearTimeout(freshT);
   if(S.anim&&ready()){view.classList.add('fresh');freshT=setTimeout(function(){view.classList.remove('fresh')},900)}else if(!S.anim){view.classList.remove('fresh')}
@@ -757,7 +767,7 @@ function render(){
   if(sc1){sc1.scrollLeft=sl0;if(S.reveal){var on1=sc1.querySelector('.chip.on');if(on1)sc1.scrollLeft=Math.max(0,sc1.scrollLeft+on1.getBoundingClientRect().left-sc1.getBoundingClientRect().left-(sc1.clientWidth-on1.offsetWidth)/2)}}
   S.reveal=false;
   if(keep){var el=document.getElementById(keep.id);if(el){el.focus();try{el.setSelectionRange(keep.s,keep.e)}catch(_){}}}
-  var fab=FABS[S.tab],fb=$('#fab');
+  var fab=(S.tab==='ventas'&&S.vsub==='res')?['new-res','Nueva reserva']:FABS[S.tab],fb=$('#fab');
   if(fab&&ready()){fb.hidden=false;fb.dataset.a=fab[0];fb.setAttribute('aria-label',fab[1]);fb.innerHTML=ic('plus')}else fb.hidden=true;
   runCounts();
 }
@@ -822,7 +832,7 @@ function monthSales(k){return S.sales.filter(function(s){return mkey(s.date)===k
 function envio(s){return (s.channel||'Sin canal')+(s.guide?' · Guía '+s.guide:'')}
 function salesTotals(list){var t={n:0,qty:0,gross:0,disc:0,comm:0,net:0,H:{Importoys:0,Importshop:0,Bodega:0},S:{}};
   list.forEach(function(s){var q=parseInt(s.qty,10)||0,h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega',sl=String(s.seller||'').trim()||'Sin vendedor';
-    t.n++;t.qty+=q;t.gross+=gross(s);t.disc+=cents(s.discount);t.comm+=cents(s.commission);t.net+=net(s);t.H[h]+=net(s);
+    t.n++;t.qty+=q;t.gross+=gross(s);t.disc+=cents(s.discount);t.comm+=cents(s.commission);t.net+=net(s);var dp=cents(s.dep);if(dp>0&&dp<=net(s)&&HOLDERS.indexOf(s.depHolder)>=0&&s.depHolder!==h){t.H[s.depHolder]+=dp;t.H[h]+=net(s)-dp}else t.H[h]+=net(s);
     var o=t.S[sl]||(t.S[sl]={n:0,net:0,comm:0});o.n++;o.net+=net(s);o.comm+=cents(s.commission)});return t}
 function salesTable(list){
   var t=salesTotals(list);
@@ -845,7 +855,7 @@ function viewDia(){
   return monthBar1()+'<section class="card rep"><div class="pad"><h3 class="rep-t">Reporte de ventas · '+mlabel(k)+'</h3><p class="sub">Ventas del mes hasta el '+fdate(today())+'</p></div>'+
     '<div class="trio" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div style="border-top-color:var(--brand)"><div class="lab">Ventas</div><div class="val num">'+t.n+'</div></div><div style="border-top-color:var(--brand)"><div class="lab">Unidades</div><div class="val num">'+t.qty+'</div></div><div style="border-top-color:var(--k-exp)"><div class="lab">Descuentos</div><div class="val num">'+money(t.disc)+'</div></div><div style="border-top-color:var(--k-real)"><div class="lab">Total</div><div class="val num">'+money(t.net)+'</div></div></div>'+
     (list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>'+
-    '<div class="sec-title">Quién tiene el dinero</div><div class="narrow">'+holderTotals(t)+'</div>'+'<div class="sec-title">Por vendedor</div><section class="card narrow">'+sellerTotals(t)+'</section>'+reportActs('dia');
+    resReportHTML()+'<div class="sec-title">Quién tiene el dinero</div><div class="narrow">'+holderTotals(t)+'</div>'+'<div class="sec-title">Por vendedor</div><section class="card narrow">'+sellerTotals(t)+'</section>'+reportActs('dia');
 }
 function diaText(){
   var k=repMonth(),list=monthSales(k),t=salesTotals(list),L=['*Reporte de ventas · '+mlabel(k)+'*','Al '+fdate(today()),''];
@@ -853,6 +863,7 @@ function diaText(){
     L.push((i+1)+'. '+fdate(s.date)+' · '+s.customer,'   '+s.productName+(s.productModel?' ('+s.productModel+')':'')+' × '+(parseInt(s.qty,10)||0)+' a '+money(cents(s.unitPrice)),
       '   Desc. '+money(cents(s.discount))+' · Comisión '+money(cents(s.commission)),'   Envío: '+envio(s),'   Vendió: '+(String(s.seller||'').trim()||'—')+' · Dinero en: '+h,'   *Total '+money(net(s))+'*','')});
   L.push('*Totales*','Ventas: '+t.n+' · Unidades: '+t.qty,'Descuentos: '+money(t.disc)+' · Comisiones: '+money(t.comm),'*Total vendido: '+money(t.net)+'*','','Dinero en Importoys: '+money(t.H.Importoys),'Dinero en Importshop: '+money(t.H.Importshop),'Dinero en Bodega: '+money(t.H.Bodega));
+  resReportText().forEach(function(x){L.push(x)});
   return L.join('\n');
 }
 function payHL(r,k){
@@ -865,7 +876,7 @@ function viewCierre(){
   var r=calc(k),P=r.P,list=monthSales(k),t=salesTotals(list);
   var ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
   var h=monthBar1()+payHL(r,k)+'<section class="card rep narrow" style="margin-top:14px"><div class="pad"><h3 class="rep-t">Cierre de '+mlabel(k)+'</h3><p class="sub">Ventas, gastos, dinero de cada quien y liquidación</p></div>'+
-    '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+'</dl></section>';
+    '<dl class="kv"><div><dt>Total vendido</dt><dd class="num">'+money(r.T.inc)+'</dd></div>'+(r.T.ret?'<div><dt>Incluye anticipos retenidos de reservas canceladas</dt><dd class="num">'+money(r.T.ret)+'</dd></div>':'')+(r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+'<div><dt>Gastos</dt><dd class="num">−'+money(r.T.exp)+'</dd></div><div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div>'+'</dl></section>';
   h+='<div class="sec-title">Ventas detalladas</div><section class="card rep">'+(list.length?salesTable(list):'<p class="pad stat">No hay ventas en este mes.</p>')+'</section>';
   h+='<div class="sec-title">Gastos detallados</div><section class="card rep narrow">'+(ex.length?'<div class="tscroll"><table class="rtable sm"><thead><tr><th>Fecha</th><th>Descripción</th><th>Quién gastó</th><th class="r">Monto</th></tr></thead><tbody>'+ex.map(function(e){var w=COMPANIES.indexOf(e.who)>=0?e.who:'Importoys';return '<tr><td>'+fdate(e.date)+'</td><td>'+esc(e.description)+(e.auto?' <small>automático</small>':'')+'</td><td><span class="who h-'+w+'"><i class="dot"></i>'+w+'</span></td><td class="r num"><b>'+money(cents(e.amount))+'</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td colspan="3">Total de gastos</td><td class="r num">'+money(r.T.exp)+'</td></tr></tfoot></table></div>':'<p class="pad stat">No hay gastos en este mes.</p>')+
     '<dl class="kv" style="border-top:1px solid var(--line)"><div><dt>Gastó Importoys</dt><dd class="num">'+money(P.Importoys.exp)+'</dd></div><div><dt>Gastó Importshop</dt><dd class="num">'+money(P.Importshop.exp)+'</dd></div></dl></section>';
@@ -877,6 +888,7 @@ function cierreText(){
   var L=['*Cierre de '+mlabel(k)+'*','','*QUIÉN PAGA A QUIÉN*'];
   if(r.pays.length)r.pays.forEach(function(p){L.push('➡ '+p.from+' paga '+money(p.amt)+' a '+p.to)});else L.push('Todo está al día, no hay pagos pendientes.');
   L.push('','*Resumen*','Total vendido: '+money(r.T.inc));
+  if(r.T.ret)L.push('(incluye anticipos retenidos de reservas canceladas: '+money(r.T.ret)+')');
   if(r.ded)L.push('Comisiones: −'+money(r.T.comm));
   L.push('Gastos: −'+money(r.T.exp),'Ganancia a repartir: '+money(r.profit));
   L.push('','*Ventas ('+list.length+')*');
@@ -926,7 +938,7 @@ function saleRow(s){
     '<span class="mchip">'+ic('user')+esc(String(s.seller||'').trim()||'Sin vendedor')+'</span>'+
     (s.payment?'<span class="mchip">'+ic('card')+esc(s.payment)+'</span>':'')+
     (s.channel?'<span class="mchip">'+esc(s.channel)+'</span>':'')+
-    (s.guide?'<span class="mchip">'+ic('truck')+'Guía '+esc(s.guide)+'</span>':'');
+    (s.guide?'<span class="mchip">'+ic('truck')+'Guía '+esc(s.guide)+'</span>':'')+(s.dep?'<span class="mchip">Reserva '+(s.resNum?'R-'+String(s.resNum).padStart(4,'0')+' · ':'')+'anticipo '+money(cents(s.dep))+' en '+esc(s.depHolder)+'</span>':'');
   return '<article class="row">'+thumb(photoOf(s.productId))+
     '<div class="r-main"><h3>'+esc(s.customer)+(s.doc==='CF'||s.doc==='CCF'?'<span class="tag">'+s.doc+'</span>':'')+(s.example?'<span class="tag ex">Ejemplo</span>':'')+'</h3><p>'+esc(s.productName)+(s.productModel?' · '+esc(s.productModel):'')+' × '+(parseInt(s.qty,10)||0)+'</p></div>'+
     '<div class="r-amt num">'+money(net(s))+(sub.length?'<small>'+sub.join(' · ')+'</small>':'')+'</div>'+
@@ -944,7 +956,7 @@ function viewSales(){
   }).sort(cmpSale);
   var totals={all:0};HOLDERS.forEach(function(h){totals[h]=0});
   var cnt0=0;S.sales.filter(function(s){return mo==='all'||mkey(s.date)===mo}).forEach(function(s){cnt0++;var v=net(s);totals.all+=v;totals[HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega']+=v});
-  var h='<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt0,'venta','ventas')+' · '+money(totals.all)+'</p></div><button class="btn" type="button" data-a="new-sale">'+ic('plus')+'Nueva venta</button></div>';
+  var h=ventasTabs()+'<div class="sec-head"><div><h2>Ventas</h2><p class="sub">'+(mo==='all'?'':mlabel(mo)+': ')+plural(cnt0,'venta','ventas')+' · '+money(totals.all)+'</p></div><button class="btn" type="button" data-a="new-sale">'+ic('plus')+'Nueva venta</button></div>';
   if(!S.sales.length)return h+emptyBox('cart','Aún no hay ventas',S.inv.length?'Registra la primera con «Nueva venta». El producto sale de tu inventario.':'Primero agrega tus productos en Inventario; después podrás venderlos aquí.',S.inv.length?'':'<button class="btn" data-a="tab" data-v="inventario">Ir a Inventario</button>');
   h+=monthBar('ventas')+'<div class="tools"><div class="search">'+ic('search')+'<input id="q" type="search" placeholder="Buscar cliente, guía, vendedor o producto" aria-label="Buscar ventas" value="'+esc(S.q)+'" autocomplete="off"></div>'+
     '<div class="chips">'+[['all','Todas']].concat(HOLDERS.map(function(x){return [x,x]})).map(function(c){
@@ -1216,7 +1228,7 @@ function fillPicker(q){
   var f=$('#f'),sel=$('#f-product').value,sid=f.dataset.sid||undefined;q=String(q||'').trim().toLowerCase();
   var list=S.inv.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),'es')}).filter(function(p){return !q||(p.name+' '+(p.model||'')).toLowerCase().indexOf(q)>=0});
   $('#plist').innerHTML=list.length?list.map(function(p){
-    var a=avail(p,sid);
+    var a=avail(p,sid,f.dataset.rid||undefined);
     return '<button type="button" class="popt'+(sel===p.id?' sel':'')+(a<=0&&sel!==p.id?' off':'')+'" data-a="pick" data-id="'+p.id+'">'+thumb(p.photo)+'<div><b>'+esc(p.name)+'</b><small>'+(p.model?esc(p.model)+' · ':'')+(a>0?'Disponibles '+a:'Agotado')+'</small></div><b class="num">'+money(cents(p.price))+'</b></button>'}).join(''):'<p class="stat" style="text-align:center;padding:20px">Ningún producto coincide.</p>';
 }
 function openPicker(){
@@ -1258,7 +1270,8 @@ function openSale(id){
   refreshPick();updateReadout();
 }
 function updateReadout(){
-  var f=$('#f');if(!f||f.dataset.kind!=='sale')return;
+  var f=$('#f');if(f&&f.dataset.kind==='res'){var q0=Math.max(0,parseInt(f.elements.qty.value,10)||0),t0=cents(f.elements.unit.value)*q0-cents(f.elements.discount.value),d0=cents(f.elements.deposit.value);$('#f-total').textContent=money(Math.max(0,t0));$('#f-sub').textContent='Saldo pendiente: '+money(Math.max(0,t0-d0));return}
+  if(!f||f.dataset.kind!=='sale')return;
   var sel=f.elements.product,o=sel.selectedOptions[0];
   var unit=(f.dataset.pid&&sel.value===f.dataset.pid)?Number(f.dataset.unit):(o&&o.value?Number(o.dataset.price):0);
   var qty=Math.max(0,parseInt(f.elements.qty.value,10)||0),d=cents(f.elements.discount.value);
@@ -1283,6 +1296,7 @@ async function saveSale(fd,sale){
     seller:String(fd.get('seller')||'').trim(),payment:String(fd.get('payment')||'').trim(),channel:fd.get('channel'),guide:String(fd.get('guide')||'').trim(),
     holder:fd.get('holder')||'Importoys',doc:fd.get('doc')||'Nada',createdAt:sale?(sale.createdAt||Date.now()):Date.now()};
   if(sale&&sale.example)data.example=true;
+  if(sale&&sale.dep){data.dep=sale.dep;data.depHolder=sale.depHolder;data.resId=sale.resId;data.resNum=sale.resNum}
   var ref=sale?S.db.doc('sales/'+sale.id):S.db.collection('sales').doc();
   try{await retry(function(){return ref.set(data)})}catch(e){return errMsg(e)}
   toast(sale?'Venta actualizada':'Venta guardada');return null;
@@ -1420,6 +1434,12 @@ async function makePdf(kind){
     txt('Reporte de ventas - '+mlabel(k),M,y,19,true);y+=28;
     txt('Ventas del mes hasta el '+fdate(today())+'   |   '+t.n+' ventas   |   '+t.qty+' unidades   |   Descuentos '+m2(t.disc)+'   |   Comisiones '+m2(t.comm)+'   |   Total vendido '+m2(t.net),M,y,10,false,GRAY);y+=22;
     if(list.length)salesTable();else{txt('No hay ventas en este mes.',M,y,10);y+=20}
+    var rl=resOpenList(),rt=resTotals(rl);
+    head('Reservaciones pendientes de retirar');
+    if(rl.length)table({full:true,cols:[{h:'N°'},{h:'Reservó'},{h:'Cliente'},{h:'Teléfono'},{h:'Producto'},{h:'Cant.',r:1},{h:'Total',r:1},{h:'Dejó',r:1},{h:'Resta',r:1,b:1},{h:'Anticipo en'},{h:'Retira'}],
+      rows:rl.map(function(r){var h=HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega';return [resNum(r),fdate(r.date),r.customer+(r.dui?' (DUI '+r.dui+')':''),r.phone||'-',r.productName+(r.productModel?' ('+r.productModel+')':''),String(parseInt(r.qty,10)||0),m2(resTotal(r)),m2(cents(r.deposit)),m2(resSaldo(r)),{t:h,c:HCOL[h],b:1},r.pickup?fdate(r.pickup)+(r.pickup<today()?' (vencida)':''):'-']}),
+      foot:[['Totales ('+rl.length+' reservas)','','','','','',m2(rt.total),m2(rt.dep),m2(rt.saldo),'','']]});
+    else{txt('No hay reservas pendientes.',M,y,10);y+=20}
     head('Quién tiene el dinero');
     table({cols:[{h:'Importoys',r:1},{h:'Importshop',r:1},{h:'Bodega',r:1}],rows:[[m2(t.H.Importoys),m2(t.H.Importshop),m2(t.H.Bodega)]],size:10});
     var ks=Object.keys(t.S).sort(function(a,b){return t.S[b].net-t.S[a].net});
@@ -1432,7 +1452,7 @@ async function makePdf(kind){
     if(r.pays.length)r.pays.forEach(function(p,i){var ty=y+34+i*30;txt(p.from+'  paga a  '+p.to,M+14,ty,13,true,[255,255,255]);txt(m2(p.amt),M+416,ty-3,19,true,SUN,'r')});
     else txt('Todo esta al dia. No hay pagos pendientes.',M+14,y+36,12,true,[255,255,255]);
     y+=bh+22;
-    head('Resumen');var rs=[['Total vendido',m2(r.T.inc)]];if(r.ded)rs.push(['Comisiones','-'+m2(r.T.comm)]);rs.push(['Gastos','-'+m2(r.T.exp)],['Ganancia a repartir',{t:m2(r.profit),b:1}]);
+    head('Resumen');var rs=[['Total vendido',m2(r.T.inc)]];if(r.T.ret)rs.push(['Incluye anticipos retenidos de reservas canceladas',m2(r.T.ret)]);if(r.ded)rs.push(['Comisiones','-'+m2(r.T.comm)]);rs.push(['Gastos','-'+m2(r.T.exp)],['Ganancia a repartir',{t:m2(r.profit),b:1}]);
     table({cols:[{h:'Concepto'},{h:'Monto',r:1,b:1}],rows:rs,size:10});
     head('Ventas detalladas');if(list.length)salesTable();else{txt('No hay ventas en este mes.',M,y,10);y+=20}
     var ex=allExp().filter(function(e){return mkey(e.date)===k}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
@@ -1631,9 +1651,240 @@ async function staffPdf(r){
   dlBlob(new Blob([await doc.save()],{type:'application/pdf'}),'expediente-'+slugName(d.nombre)+'.pdf');
 }
 
+async function logoPng(){
+  var im=document.querySelector('img.logo');if(!im)return null;
+  try{await (im.decode?im.decode():Promise.resolve());var c=document.createElement('canvas');c.width=im.naturalWidth||176;c.height=im.naturalHeight||147;c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/png')}catch(e){return null}
+}
+async function resPdf(r){
+  await loadPdfLibs();
+  var L=window.PDFLib,doc=await L.PDFDocument.create(),F=await doc.embedFont(L.StandardFonts.Helvetica),FB=await doc.embedFont(L.StandardFonts.HelveticaBold);
+  var PW=595.28,PH=841.89,M=36,W=PW-2*M,page=doc.addPage([PW,PH]);
+  var NAVY=[15,31,82],BLUE=[36,89,224],GRAY=[96,110,145],DARK=[13,27,63],LIGHT=[232,238,255],SUN=[255,194,46],LINE=[205,213,235];
+  var rgb=function(a){return L.rgb(a[0]/255,a[1]/255,a[2]/255)};
+  var wid=function(s,z,b){return (b?FB:F).widthOfTextAtSize(CL(s),z)};
+  var txt=function(s,x,top,z,b,col,al){s=CL(s);if(al==='r')x-=wid(s,z,b);if(al==='c')x-=wid(s,z,b)/2;page.drawText(s,{x:x,y:PH-top-z*0.85,size:z,font:b?FB:F,color:rgb(col||DARK)})};
+  var rect=function(x,top,w,h,col){page.drawRectangle({x:x,y:PH-top-h,width:w,height:h,color:rgb(col)})};
+  var line=function(x1,t,x2,col,th,dash){page.drawLine({start:{x:x1,y:PH-t},end:{x:x2,y:PH-t},thickness:th||.8,color:rgb(col||LINE),dashArray:dash})};
+  var wrap=function(s,z,b,w){var out=[];String(s==null?'':s).split(/\r?\n/).forEach(function(par){var cur='';CL(par).split(' ').forEach(function(wd){var t=cur?cur+' '+wd:wd;if(wid(t,z,b)<=w||!cur)cur=t;else{out.push(cur);cur=wd}});out.push(cur)});return out};
+  var logo=null,lp=await logoPng();if(lp){try{logo=await doc.embedPng(Uint8Array.from(atob(lp.split(',')[1]),function(c){return c.charCodeAt(0)}))}catch(e){}}
+  var m2=function(c){return money(c)};
+  var tot=resTotal(r),dep=cents(r.deposit),sal=resSaldo(r),qty=parseInt(r.qty,10)||0,disc=cents(r.discount);
+  function receipt(T,label){
+    /* encabezado */
+    if(logo)page.drawImage(logo,{x:M,y:PH-T-52,width:62,height:52});
+    txt('Importoys El Salvador',M+72,T+4,15,true);
+    txt('Recibo de reserva',M+72,T+24,11,false,BLUE);
+    txt(resNum(r),PW-M,T+2,18,true,NAVY,'r');
+    txt('Fecha: '+fdate(r.date),PW-M,T+26,10,false,GRAY,'r');
+    txt(label,PW-M,T+40,8,false,GRAY,'r');
+    line(M,T+62,PW-M,BLUE,1.6);
+    /* cliente */
+    var y=T+74;
+    txt('Cliente',M,y,8.5,false,GRAY);txt(r.customer,M,y+11,11.5,true);
+    txt('Teléfono',M+300,y,8.5,false,GRAY);txt(r.phone||'-',M+300,y+11,11.5,true);
+    if(r.dui){txt('DUI',M+420,y,8.5,false,GRAY);txt(r.dui,M+420,y+11,11.5,true)}
+    /* producto */
+    y+=40;
+    rect(M,y,W,18,BLUE);
+    var cx={d:M+8,q:M+W-250,p:M+W-185,s:M+W-110,t:M+W-8};
+    txt('Producto',cx.d,y+5,9,true,[255,255,255]);txt('Cant.',cx.q,y+5,9,true,[255,255,255],'r');txt('Precio',cx.p,y+5,9,true,[255,255,255],'r');txt('Desc.',cx.s,y+5,9,true,[255,255,255],'r');txt('Total',cx.t,y+5,9,true,[255,255,255],'r');
+    var pn=wrap(r.productName+(r.productModel?' ('+r.productModel+')':''),10,true,W-280),rh=Math.max(1,pn.length)*13+10;
+    rect(M,y+18,W,rh,[246,248,253]);
+    pn.forEach(function(ln,i){txt(ln,cx.d,y+24+i*13,10,true)});
+    txt(String(qty),cx.q,y+24,10,false,DARK,'r');txt(m2(cents(r.unitPrice)),cx.p,y+24,10,false,DARK,'r');txt(disc?'-'+m2(disc):'-',cx.s,y+24,10,false,DARK,'r');txt(m2(tot),cx.t,y+24,10,true,DARK,'r');
+    y+=18+rh+12;
+    /* montos */
+    var bx=M+W-240;
+    txt('Total de la compra',bx,y,10,false,GRAY);txt(m2(tot),PW-M,y,10.5,true,DARK,'r');
+    txt('Anticipo recibido'+(r.payment?' ('+r.payment+')':''),bx,y+18,10,false,GRAY);txt(m2(dep),PW-M,y+18,10.5,true,DARK,'r');
+    rect(bx-8,y+36,248,30,NAVY);rect(bx-8,y+36,4,30,SUN);
+    txt('SALDO PENDIENTE',bx+4,y+45,10,true,[255,255,255]);txt(m2(sal),PW-M-8,y+42,15,true,SUN,'r');
+    /* izquierda: retiro y notas */
+    var lx=M,ly=y,lw=bx-M-24;
+    txt('Estado',lx,ly,8.5,false,GRAY);txt('Producto apartado, pendiente de retirar',lx,ly+11,9.5,true);
+    if(r.pickup){txt('Fecha de retiro acordada',lx,ly+30,8.5,false,GRAY);txt(fdate(r.pickup),lx,ly+41,9.5,true)}
+    if(r.notes){wrap(r.notes,8.5,false,lw).slice(0,2).forEach(function(l,i){txt(l,lx,ly+(r.pickup?58:30)+i*10,8.5,false,GRAY)})}
+    y+=80;
+    var leg=wrap('Este comprobante acredita el anticipo recibido para apartar el producto. El saldo pendiente se cancela al momento del retiro.',8,false,W);
+    leg.forEach(function(l,i){txt(l,M,y+i*10,8,false,GRAY)});
+    /* firmas */
+    var sy=y+44;line(M+10,sy,M+200,DARK,.7);line(PW-M-200,sy,PW-M-10,DARK,.7);
+    txt('Entregó (Importoys)',M+105,sy+4,8.5,false,GRAY,'c');txt('Recibí conforme (cliente)',PW-M-105,sy+4,8.5,false,GRAY,'c');
+  }
+  receipt(M,'Copia del cliente');
+  line(M,PH/2+2,PW-M,GRAY,.8,[5,4]);txt('Cortar aquí',PW/2,PH/2+5,7,false,GRAY,'c');
+  receipt(PH/2+22,'Copia del negocio');
+  dlBlob(new Blob([await doc.save()],{type:'application/pdf'}),'recibo-reserva-'+resNum(r)+'-'+slugName(r.customer)+'.pdf');
+}
+
+
+function noId(o){var c=Object.assign({},o);delete c.id;return c}
+
+/* ---------- reservaciones ---------- */
+function resPend(){return S.res.filter(function(r){return r.status==='pendiente'})}
+function resTotal(r){return Math.max(0,cents(r.unitPrice)*(parseInt(r.qty,10)||0)-cents(r.discount))}
+function resSaldo(r){return Math.max(0,resTotal(r)-cents(r.deposit))}
+function resNum(r){return 'R-'+String(r.num||0).padStart(4,'0')}
+function resText(r){
+  var L=['*Recibo de reserva '+resNum(r)+'*','Importoys El Salvador','','Cliente: '+r.customer+(r.phone?' · Tel. '+r.phone:''),
+    'Producto: '+r.productName+(r.productModel?' ('+r.productModel+')':'')+' × '+(parseInt(r.qty,10)||0),
+    'Total: '+money(resTotal(r)),'Anticipo recibido: '+money(cents(r.deposit))+' ('+fdate(r.date)+')','*Saldo pendiente: '+money(resSaldo(r))+'*'];
+  if(r.pickup)L.push('Fecha de retiro: '+fdate(r.pickup));
+  L.push('','El saldo se cancela al retirar el producto. Gracias por tu preferencia.');return L.join('\n');
+}
+
+function resOpenList(){return resPend().sort(function(a,b){return (a.pickup||'9999').localeCompare(b.pickup||'9999')||(a.num||0)-(b.num||0)})}
+function resTotals(list){var t={dep:0,saldo:0,total:0,H:{Importoys:0,Importshop:0,Bodega:0}};list.forEach(function(r){var d=cents(r.deposit);t.dep+=d;t.saldo+=resSaldo(r);t.total+=resTotal(r);t.H[HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega']+=d});return t}
+function resReportHTML(){
+  var list=resOpenList(),t=resTotals(list);
+  if(!list.length)return '<div class="sec-title">Reservaciones pendientes de retirar</div><section class="card rep"><p class="pad stat">No hay reservas pendientes.</p></section>';
+  return '<div class="sec-title">Reservaciones pendientes de retirar</div><section class="card rep"><div class="tscroll"><table class="rtable"><thead><tr><th>N°</th><th>Reservó</th><th>Cliente</th><th>Teléfono</th><th>Producto</th><th class="r">Cant.</th><th class="r">Total</th><th class="r">Dejó</th><th class="r">Resta</th><th>Anticipo en</th><th>Retira</th></tr></thead><tbody>'+
+   list.map(function(r){var h=HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega',late=r.pickup&&r.pickup<today();
+     return '<tr><td>'+esc(resNum(r))+'</td><td>'+fdate(r.date)+'</td><td>'+esc(r.customer)+(r.dui?' <small>DUI '+esc(r.dui)+'</small>':'')+'</td><td>'+esc(r.phone||'—')+'</td><td>'+esc(r.productName)+(r.productModel?' <small>'+esc(r.productModel)+'</small>':'')+'</td><td class="r num">'+(parseInt(r.qty,10)||0)+'</td><td class="r num">'+money(resTotal(r))+'</td><td class="r num">'+money(cents(r.deposit))+'</td><td class="r num"><b>'+money(resSaldo(r))+'</b></td><td><span class="who h-'+h+'"><i class="dot"></i>'+h+'</span></td><td>'+(r.pickup?fdate(r.pickup)+(late?' <small>vencida</small>':''):'—')+'</td></tr>'}).join('')+
+   '</tbody><tfoot><tr><td colspan="6">Totales ('+plural(list.length,'reserva','reservas')+')</td><td class="r num">'+money(t.total)+'</td><td class="r num">'+money(t.dep)+'</td><td class="r num">'+money(t.saldo)+'</td><td colspan="2"></td></tr></tfoot></table></div></section>';
+}
+function resReportText(){
+  var list=resOpenList(),t=resTotals(list);if(!list.length)return [];
+  var L=['','*Reservaciones pendientes de retirar ('+list.length+')*'];
+  list.forEach(function(r,i){var h=HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega';
+    L.push((i+1)+'. '+resNum(r)+' · '+r.customer+(r.phone?' · Tel. '+r.phone:''),'   '+r.productName+(r.productModel?' ('+r.productModel+')':'')+' × '+(parseInt(r.qty,10)||0)+' · Total '+money(resTotal(r)),
+      '   Dejó '+money(cents(r.deposit))+' (en '+h+') · *Resta '+money(resSaldo(r))+'*','   Retira: '+(r.pickup?fdate(r.pickup)+(r.pickup<today()?' (vencida)':''):'sin fecha'),'')});
+  L.push('Anticipos: '+money(t.dep)+' · *Saldo por cobrar: '+money(t.saldo)+'*');return L;
+}
+function viewRes(){
+  var q=S.rq.trim().toLowerCase(),pend=resPend(),dep={Importoys:0,Importshop:0,Bodega:0},saldo=0;
+  pend.forEach(function(r){dep[HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega']+=cents(r.deposit);saldo+=resSaldo(r)});
+  var h=ventasTabs()+'<div class="sec-head"><div><h2>Reservaciones</h2><p class="sub">'+plural(pend.length,'pendiente de retirar','pendientes de retirar')+' · saldo por cobrar '+money(saldo)+'</p></div><button class="btn" type="button" data-a="new-res">'+ic('plus')+'Nueva reserva</button></div>';
+  if(!S.res.length)return h+emptyBox('calendar','Aún no hay reservas','Cuando un cliente aparte un producto con un anticipo, regístralo aquí. El producto queda apartado del inventario y puedes darle su recibo.','<button class="btn" data-a="new-res">'+ic('plus')+'Registrar la primera</button>');
+  h+='<div class="money3">'+HOLDERS.map(function(x){return '<div class="mcell h-'+x+'"><small><i class="dot"></i>Anticipos en '+x+'</small><b class="num">'+money(dep[x])+'</b></div>'}).join('')+'</div><p class="hint" style="margin:6px 2px 12px">Los anticipos de reservas pendientes todavía no cuentan como venta. Entran a la liquidación cuando el cliente retira.</p>';
+  var cnt={pendiente:0,retirada:0,cancelada:0};S.res.forEach(function(r){cnt[r.status]=(cnt[r.status]||0)+1});
+  h+='<div class="tools"><div class="search">'+ic('search')+'<input id="rq" type="search" placeholder="Buscar cliente, teléfono, producto o número" aria-label="Buscar reservas" value="'+esc(S.rq)+'" autocomplete="off"></div><div class="chips">'+
+    [['pendiente','Pendientes'],['retirada','Retiradas'],['cancelada','Canceladas'],['all','Todas']].map(function(c){return '<button type="button" class="chip'+(S.rf===c[0]?' on':'')+'" data-a="rf" data-v="'+c[0]+'">'+c[1]+(c[0]==='all'?'':' <span class="num">'+(cnt[c[0]]||0)+'</span>')+'</button>'}).join('')+'</div></div>';
+  var list=S.res.filter(function(r){return (S.rf==='all'||r.status===S.rf)&&(!q||[r.customer,r.phone,r.productName,r.productModel,resNum(r)].join(' ').toLowerCase().indexOf(q)>=0)})
+    .sort(function(a,b){return (b.num||0)-(a.num||0)});
+  if(!list.length)return h+emptyBox('search','Sin resultados','Ninguna reserva coincide con el filtro o la búsqueda.');
+  return h+'<div class="group cols">'+list.map(resRow).join('')+'</div>';
+}
+function resRow(r){
+  var st=r.status,pill=st==='pendiente'?'<span class="pill warn">Pendiente de retirar</span>':st==='retirada'?'<span class="pill ok">Retirada</span>':'<span class="pill bad">Cancelada</span>';
+  var h=HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega';
+  var chips='<span class="mchip">'+ic('calendar')+fdate(r.date)+'</span>'+(r.phone?'<span class="mchip">'+ic('user')+esc(r.phone)+'</span>':'')+(r.pickup&&st==='pendiente'?'<span class="mchip'+(r.pickup<today()?' late':'')+'">'+ic('truck')+'Retira: '+fdate(r.pickup)+(r.pickup<today()?' · vencida':'')+'</span>':'')+'<span class="mchip">'+esc(resNum(r))+'</span>';
+  var info=st==='cancelada'?'<small>'+(r.refund?'Anticipo devuelto al cliente':'Anticipo retenido por '+esc(r.keepTo||'—'))+'</small>':'<small>Anticipo '+money(cents(r.deposit))+' · Saldo '+money(resSaldo(r))+'</small>';
+  var acts='';
+  if(S.del==='res:'+r.id)acts='<span class="acts"><button class="btn bad sm" data-a="del-yes" data-k="res" data-id="'+r.id+'">Sí, eliminar</button><button class="btn ghost sm" data-a="del-no">Cancelar</button></span>';
+  else{
+    if(st==='pendiente')acts+='<button class="btn sm" type="button" data-a="res-pick" data-id="'+r.id+'">'+ic('check')+'Retirar y cobrar saldo</button>';
+    if(IS_PWA)acts+='<button class="btn ghost sm" type="button" data-a="res-pdf" data-id="'+r.id+'">'+ic('download')+'Recibo PDF</button>';
+    acts+='<button class="btn ghost sm" type="button" data-a="res-wa" data-id="'+r.id+'">'+ic('share')+'WhatsApp</button>';
+    if(st==='pendiente')acts+='<button class="btn ghost sm" type="button" data-a="res-cancel" data-id="'+r.id+'">Cancelar reserva</button>';
+    acts+='<span class="acts">'+(st==='pendiente'?'<button class="ibtn sm" data-a="edit-res" data-id="'+r.id+'" aria-label="Editar">'+ic('edit')+'</button>':'')+'<button class="ibtn sm bad" data-a="ask-del" data-k="res" data-id="'+r.id+'" aria-label="Eliminar">'+ic('trash')+'</button></span>';
+  }
+  return '<article class="row">'+thumb(photoOf(r.productId))+'<div class="r-main"><h3>'+esc(r.customer)+' '+pill+'</h3><p>'+esc(r.productName)+(r.productModel?' · '+esc(r.productModel):'')+' × '+(parseInt(r.qty,10)||0)+'</p></div>'+
+    '<div class="r-amt num">'+money(resTotal(r))+info+'</div><div class="r-meta">'+chips+'</div>'+
+    '<div class="r-foot rfx"><span class="holder h-'+h+'"><span>Anticipo en</span><b>'+h+'</b></span><div class="acts-bar rbar">'+acts+'</div></div></article>';
+}
+function ventasTabs(){return '<div class="seg2 two" role="tablist">'+[['ventas','Ventas'],['res','Reservaciones'+(resPend().length?' ('+resPend().length+')':'')]].map(function(t){return '<button type="button" role="tab" class="'+(S.vsub===t[0]?'on':'')+'" aria-selected="'+(S.vsub===t[0])+'" data-a="vsub" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'}
+function openRes(id){
+  if(needDb())return;
+  var r=id?S.res.filter(function(x){return x.id===id})[0]:null;
+  if(!r&&!S.inv.length){toast('Primero agrega un producto en Inventario.',true);S.tab='inventario';S.anim=true;render();return}
+  var s=r||{date:today(),qty:1,discount:'',deposit:'',holder:'Importoys',payment:'Efectivo',customer:'',phone:'',dui:'',seller:'',pickup:'',notes:'',unitPrice:''};
+  var prods=S.inv.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),'es')});
+  var opts='<option value="">Elige un producto</option>';
+  var opt=function(p,sel){return '<option value="'+p.id+'" data-name="'+esc(p.name)+'" data-model="'+esc(p.model||'')+'" data-price="'+Number(p.price)+'" data-cost="'+(p.cost==null?'':Number(p.cost))+'"'+(sel?' selected':'')+'>'+esc(p.name)+'</option>'};
+  if(r&&!prods.some(function(p){return p.id===r.productId}))opts+=opt({id:r.productId,name:r.productName,model:r.productModel,price:r.unitPrice,cost:r.unitCost},true);
+  prods.forEach(function(p){opts+=opt(p,r&&r.productId===p.id)});
+  var html='<form id="f" data-kind="res" novalidate'+(r?' data-rid="'+esc(r.id)+'" data-pid="'+esc(r.productId)+'"':'')+'>'+
+    '<div class="fld"><label for="f-customer">Nombre del cliente</label><input id="f-customer" name="customer" type="text" autocomplete="off" value="'+esc(s.customer)+'"></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-phone">Teléfono</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" value="'+esc(s.phone)+'"></div>'+
+    '<div class="fld"><label for="f-dui">DUI <small>(opcional)</small></label><input id="f-dui" name="dui" type="text" inputmode="numeric" autocomplete="off" placeholder="00000000-0" value="'+esc(s.dui)+'"></div></div>'+
+    '<div class="fld"><span class="lbl">Producto</span><select id="f-product" name="product" hidden>'+opts+'</select><div id="pickwrap"></div></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-qty">Cantidad</label><input id="f-qty" name="qty" type="number" inputmode="numeric" min="1" step="1" value="'+(parseInt(s.qty,10)||1)+'"></div>'+
+    '<div class="fld"><label for="f-unit">Precio unitario ($)</label><input id="f-unit" name="unit" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(s.unitPrice)+'"></div></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-discount">Descuento ($)</label><input id="f-discount" name="discount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(s.discount||'')+'"></div>'+
+    '<div class="fld"><label for="f-deposit">Anticipo recibido ($)</label><input id="f-deposit" name="deposit" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(s.deposit)+'"></div></div>'+
+    '<div class="readout"><span>Total · Saldo pendiente<br><small id="f-sub"></small></span><b class="num" id="f-total">$0.00</b></div>'+
+    '<div class="fld"><span class="lbl">Quién recibió el anticipo</span><div class="segs" role="radiogroup">'+HOLDERS.map(function(h){return '<label class="seg h-'+h+'"><input type="radio" name="holder" value="'+h+'"'+(s.holder===h?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-date">Fecha de la reserva</label><input id="f-date" name="date" type="date" value="'+esc(s.date)+'"></div>'+
+    '<div class="fld"><label for="f-pickup">Fecha en que retirará el producto</label><input id="f-pickup" name="pickup" type="date" value="'+esc(s.pickup||'')+'"></div></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-pay">Forma de pago</label><input id="f-pay" name="payment" type="text" list="dl-pays" autocomplete="off" value="'+esc(s.payment)+'"></div>'+
+    '<div class="fld"><label for="f-seller">Vendedor</label><input id="f-seller" name="seller" type="text" list="dl-sellers" autocomplete="off" value="'+esc(s.seller)+'"></div></div>'+
+    '<div class="fld"><label for="f-notes">Notas <small>(opcional)</small></label><textarea id="f-notes" name="notes" rows="2">'+esc(s.notes||'')+'</textarea></div>'+
+    dl('dl-sellers',uniq(S.sales.map(function(x){return String(x.seller||'').trim()})))+dl('dl-pays',uniq(PAYS.concat(S.sales.map(function(x){return x.payment}))))+formFoot()+'</form>';
+  openSheet(r?'Editar reserva':'Nueva reserva',html,function(fd){return saveRes(fd,r)});
+  refreshPick();updateReadout();
+}
+async function saveRes(fd,r){
+  var customer=String(fd.get('customer')||'').trim(),pid=fd.get('product'),qty=parseInt(fd.get('qty'),10),unit=num(fd.get('unit')),disc=num(fd.get('discount')),dep=num(fd.get('deposit')),date=fd.get('date');
+  if(!customer)return 'Escribe el nombre del cliente.';
+  if(!pid)return 'Elige el producto reservado.';
+  if(!(qty>=1))return 'La cantidad debe ser 1 o más.';
+  if(!(unit>0))return 'Escribe el precio unitario.';
+  if(disc<0)return 'El descuento no puede ser negativo.';
+  var total=cents(unit)*qty-cents(disc);
+  if(total<=0)return 'El total debe ser mayor a cero.';
+  if(!(dep>0))return 'Escribe el anticipo que dejó el cliente.';
+  if(cents(dep)>total)return 'El anticipo no puede ser mayor al total.';
+  if(!date)return 'Elige la fecha de la reserva.';
+  if(!fd.get('pickup'))return 'Elige la fecha en que el cliente retirará el producto.';
+  var prod=S.inv.filter(function(p){return p.id===pid})[0];
+  if(prod){var a=avail(prod,undefined,r&&r.id);if(qty>a)return 'Solo hay '+a+' disponibles de este producto.'}
+  var o=$('#f-product').selectedOptions[0];
+  var num0=r?r.num:(S.res.reduce(function(m,x){return Math.max(m,x.num||0)},0)+1);
+  var data=Object.assign({},r||{},{num:num0,customer:customer,phone:String(fd.get('phone')||'').trim(),dui:String(fd.get('dui')||'').trim(),productId:pid,productName:o.dataset.name,productModel:o.dataset.model,
+    unitPrice:unit,unitCost:(r&&pid===r.productId&&r.unitCost!=null)?r.unitCost:(o.dataset.cost===''?null:Number(o.dataset.cost)),qty:qty,discount:disc,deposit:dep,holder:fd.get('holder')||'Importoys',date:date,pickup:String(fd.get('pickup')||''),
+    payment:String(fd.get('payment')||'').trim(),seller:String(fd.get('seller')||'').trim(),notes:String(fd.get('notes')||'').trim(),status:r?r.status:'pendiente',createdAt:r?(r.createdAt||Date.now()):Date.now()});
+  delete data.id;
+  var ref=r?S.db.doc('reservations/'+r.id):S.db.collection('reservations').doc();
+  try{await retry(function(){return ref.set(data)})}catch(e){return errMsg(e)}
+  toast(r?'Reserva actualizada':'Reserva guardada');return null;
+}
+function openResPick(id){
+  if(needDb())return;
+  var r=S.res.filter(function(x){return x.id===id})[0];if(!r)return;
+  var html='<form id="f" data-kind="respick" novalidate>'+
+    '<div class="readout"><span>'+esc(r.customer)+'<br><small>'+money(resTotal(r))+' − anticipo '+money(cents(r.deposit))+' ('+esc(r.holder)+')</small></span><b class="num">'+money(resSaldo(r))+'</b></div>'+
+    '<p class="hint" style="margin:-4px 0 12px">Este es el saldo que paga hoy. La venta se registra completa y entra a la liquidación.</p>'+
+    '<div class="grid2"><div class="fld"><label for="f-date">Fecha de retiro</label><input id="f-date" name="date" type="date" value="'+today()+'"></div>'+
+    '<div class="fld"><label for="f-pay">Forma de pago del saldo</label><input id="f-pay" name="payment" type="text" list="dl-pays" autocomplete="off" value="'+esc(r.payment||'Efectivo')+'"></div></div>'+
+    '<div class="fld"><span class="lbl">Quién recibe el saldo</span><div class="segs" role="radiogroup">'+HOLDERS.map(function(h){return '<label class="seg h-'+h+'"><input type="radio" name="holder" value="'+h+'"'+(r.holder===h?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div></div>'+
+    '<div class="grid2"><div class="fld"><label for="f-commission">Comisión ($)</label><input id="f-commission" name="commission" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>'+
+    '<div class="fld"><label for="f-channel">Entrado en</label><select id="f-channel" name="channel">'+CHANNELS.map(function(c){return '<option>'+esc(c)+'</option>'}).join('')+'</select></div></div>'+
+    '<div class="fld"><span class="lbl">Documento entregado</span><div class="segs" role="radiogroup">'+['CF','CCF','Nada'].map(function(d){return '<label class="seg"><input type="radio" name="doc" value="'+d+'"'+(d==='Nada'?' checked':'')+'><span>'+d+'</span></label>'}).join('')+'</div></div>'+
+    dl('dl-pays',uniq(PAYS))+formFoot()+'</form>';
+  openSheet('Retirar y cobrar saldo',html,async function(fd){
+    var date=fd.get('date'),comm=num(fd.get('commission'));
+    if(!date)return 'Elige la fecha de retiro.';
+    if(comm<0)return 'La comisión no puede ser negativa.';
+    var sref=S.db.collection('sales').doc();
+    var sale={customer:r.customer,date:date,productId:r.productId,productName:r.productName,productModel:r.productModel||'',unitPrice:r.unitPrice,unitCost:r.unitCost==null?null:r.unitCost,qty:parseInt(r.qty,10)||1,discount:r.discount||0,commission:comm,
+      seller:r.seller||'',payment:String(fd.get('payment')||'').trim(),channel:fd.get('channel'),guide:'',holder:fd.get('holder')||r.holder,doc:fd.get('doc')||'Nada',createdAt:Date.now(),
+      dep:r.deposit,depHolder:r.holder,resId:r.id,resNum:r.num};
+    try{
+      await retry(function(){return sref.set(sale)});
+      await retry(function(){return S.db.doc('reservations/'+r.id).set(noId(Object.assign({},r,{status:'retirada',saleId:sref.id,pickedAt:date})))});
+    }catch(e){return errMsg(e)}
+    S.vsub='ventas';toast('Reserva pasada a ventas');return null;
+  });
+}
+function openResCancel(id){
+  if(needDb())return;
+  var r=S.res.filter(function(x){return x.id===id})[0];if(!r)return;
+  var html='<form id="f" data-kind="rescancel" novalidate>'+
+    '<div class="readout"><span>Anticipo de '+esc(r.customer)+'<br><small>Lo tiene '+esc(r.holder)+'</small></span><b class="num">'+money(cents(r.deposit))+'</b></div>'+
+    '<div class="fld"><span class="lbl">¿Qué pasa con el anticipo?</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="what" value="keep" checked><span>Nos lo quedamos</span></label><label class="seg"><input type="radio" name="what" value="refund"><span>Se devuelve al cliente</span></label></div></div>'+
+    '<div class="fld" id="keepbox"><span class="lbl">¿A qué empresa pasa el anticipo?</span><div class="segs" role="radiogroup">'+COMPANIES.map(function(h,i){return '<label class="seg h-'+h+'"><input type="radio" name="keepTo" value="'+h+'"'+(i===0?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div><span class="hint">Entra como ingreso de esa empresa en la liquidación. El producto vuelve a estar disponible en el inventario.</span></div>'+
+    formFoot()+'</form>';
+  openSheet('Cancelar reserva',html,async function(fd){
+    var refund=fd.get('what')==='refund';
+    var data=noId(Object.assign({},r,{status:'cancelada',refund:refund,keepTo:refund?'':(fd.get('keepTo')||'Importoys'),cancelDate:today()}));
+    try{await retry(function(){return S.db.doc('reservations/'+r.id).set(data)})}catch(e){return errMsg(e)}
+    toast('Reserva cancelada');return null;
+  });
+}
 
 /* ---------- eventos ---------- */
-var COL={sale:'sales',inv:'inventory',exp:'expenses'};
+var COL={sale:'sales',inv:'inventory',exp:'expenses',res:'reservations'};
 function go(tab){
   if(tab==='liquidacion'){S.tab='reportes';S.rep='liq'}
   else if(tab==='resumen'){S.tab='reportes';S.rep='res'}
@@ -1658,13 +1909,20 @@ document.addEventListener('click',async function(ev){
     case 'new-exp':openExp();break;
     case 'edit-exp':openExp(id);break;
     case 'close-sheet':closeSheet();break;
+    case 'vsub':S.vsub=t.dataset.v;S.del=null;S.anim=true;render();break;
+    case 'rf':S.rf=t.dataset.v;render();break;
+    case 'new-res':openRes();break;
+    case 'edit-res':openRes(id);break;
+    case 'res-pick':openResPick(id);break;
+    case 'res-cancel':openResCancel(id);break;
+    case 'res-wa':{var rw=S.res.filter(function(x){return x.id===id})[0];if(rw)window.open('https://wa.me/?text='+encodeURIComponent(resText(rw)),'_blank','noopener');break}
     case 'open-picker':openPicker();break;
     case 'close-picker':closePicker();break;
     case 'pick':{
       var f=$('#f'),pr=S.inv.filter(function(x){return x.id===id})[0],sel=$('#f-product');
       if(!pr||!sel)break;
-      if(avail(pr,f.dataset.sid||undefined)<=0&&sel.value!==id){toast('Este producto está agotado.',true);break}
-      sel.value=id;refreshPick();updateReadout();closePicker();break}
+      if(avail(pr,f.dataset.sid||undefined,f.dataset.rid||undefined)<=0&&sel.value!==id){toast('Este producto está agotado.',true);break}
+      sel.value=id;if(f.dataset.kind==='res'&&f.elements.unit)f.elements.unit.value=Number(pr.price);refreshPick();updateReadout();closePicker();break}
     case 'ph-cam':$('#ph-file-cam').click();break;
     case 'ph-pick':$('#ph-file').click();break;
     case 'ph-rm':setPhoto('');break;
@@ -1711,6 +1969,7 @@ document.addEventListener('click',async function(ev){
       t.setAttribute('aria-expanded',op);if(box)box.classList.toggle('open',op);break}
     
     case 'data':openData();break;
+    case 'res-pdf':{var rp=S.res.filter(function(x){return x.id===id})[0];if(!rp)break;toast('Preparando el recibo…');try{await resPdf(rp);toast('Recibo listo')}catch(e){console.error(e);toast('No se pudo crear el recibo. Revisa tu internet e intenta de nuevo.',true)}break}
     case 'staff-open':S.staffSel=id;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
     case 'staff-back':S.staffSel=null;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
     case 'staff-import':{var inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';inp.multiple=true;inp.onchange=function(){if(inp.files&&inp.files.length)importStaff(Array.prototype.slice.call(inp.files))};inp.click();break}
@@ -1800,6 +2059,7 @@ document.addEventListener('input',function(ev){
   var t=ev.target;
   if(t.id==='q'){S.q=t.value;sched()}
   else if(t.id==='iq'){S.iq=t.value;sched()}
+  else if(t.id==='rq'){S.rq=t.value;sched()}
   else if(t.id==='pq')fillPicker(t.value);
   else if(t.closest&&t.closest('#f'))updateReadout();
 });
@@ -1822,7 +2082,7 @@ $('#view').addEventListener('toggle',function(ev){
 
 /* ---------- almacenamiento local (sin servidor) ---------- */
 function makeLocalDb(){
-  var KEY='importoys-ventas-v1',COLS=['inventory','sales','expenses','ivaCredit','pacManual','config','settled'],data={},subs=[];
+  var KEY='importoys-ventas-v1',COLS=['inventory','sales','expenses','reservations','ivaCredit','pacManual','config','settled'],data={},subs=[];
   function load(){try{var o=JSON.parse(localStorage.getItem(KEY)||'{}');data=o&&typeof o==='object'?o:{}}catch(e){data={}}}
   function save(){localStorage.setItem(KEY,JSON.stringify(data))}
   function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
