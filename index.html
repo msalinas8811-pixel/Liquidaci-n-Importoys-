@@ -1745,8 +1745,10 @@ function isrQ(b){b=b/100;var r=b<=275?0:b<=447.62?(b-275)*.10+8.83:b<=1019.05?(b
 function payCalc(r,k,q){
   var sal=cents(r.salario);if(r.estado==='retirado')return null;
   var per=payPeriod(k,q),days=15;
-  if(r.ingreso){if(r.ingreso>per.to)return null;if(r.ingreso>per.from){var d=+r.ingreso.slice(8,10);days=Math.max(1,Math.min(15,(q===1?15:30)-d+1))}}
-  var a=((r.pay||{})[k+'-'+q])||{},base=Math.round(sal/2*days/15),ex=cents(a.extra),bo=cents(a.bono),fa=cents(a.faltas),ot=cents(a.otros);
+  if(r.ingreso&&r.ingreso>per.to)return null;
+  var a=((r.pay||{})[k+'-'+q])||{};
+  var dd=parseInt(a.dias,10);if(dd>=1&&dd<15)days=dd;
+  var base=Math.round(sal/2*days/15),ex=cents(a.extra),bo=cents(a.bono),fa=cents(a.faltas),ot=cents(a.otros);
   var ing=Math.max(0,base+ex+bo-fa),law=(a.law==='1'||a.law==='0'?a.law==='1':r.descuentos!==false)&&sal>0;
   var isss=law?Math.round(Math.min(ing,PAY.isssTopeQ)*PAY.isss):0,afp=law?Math.round(Math.min(ing,PAY.afpTopeQ)*PAY.afp):0,isr=law?isrQ(ing-isss-afp):0;
   var ded=isss+afp+isr+ot;
@@ -1779,12 +1781,13 @@ function openPayAdj(id){
   var r=staffById(id);if(!r)return;var k=pmKey(),q=pqNum(),a=((r.pay||{})[k+'-'+q])||{};
   var f=function(n,l,v,ph){return '<div class="fld"><label for="f-'+n+'">'+l+'</label><input id="f-'+n+'" name="'+n+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="'+(ph||'0.00')+'" value="'+esc(v||'')+'"></div>'};
   var html='<form id="f" data-kind="payadj" novalidate><p class="hint" style="margin:0 0 12px">'+esc((r.data&&r.data.nombre)||'')+' · '+payLabel(k,q)+'</p>'+
+    '<div class="fld"><label for="f-dias">Días trabajados <small>(déjalo en 15 si trabajó la quincena completa)</small></label><input id="f-dias" name="dias" type="number" inputmode="numeric" min="1" max="15" step="1" value="'+esc(a.dias||15)+'"></div>'+
     '<div class="grid2">'+f('extra','Horas extra ($)',a.extra)+f('bono','Bonos o comisiones ($)',a.bono)+'</div>'+
     '<div class="grid2">'+f('faltas','Descuento por faltas ($)',a.faltas)+f('otros','Adelantos o préstamos ($)',a.otros)+'</div>'+
     '<div class="fld"><label for="f-nota">Nota <small>(sale en la boleta)</small></label><input id="f-nota" name="nota" type="text" autocomplete="off" value="'+esc(a.nota||'')+'"></div>'+formFoot()+'</form>';
   openSheet('Ajustes de la quincena',html,async function(fd){
     var key=k+'-'+q,n=Object.assign({},r),pay=Object.assign({},r.pay||{});
-    pay[key]=Object.assign({},pay[key],{extra:num(fd.get('extra'))||'',bono:num(fd.get('bono'))||'',faltas:num(fd.get('faltas'))||'',otros:num(fd.get('otros'))||'',nota:String(fd.get('nota')||'').trim()});n.pay=pay;
+    pay[key]=Object.assign({},pay[key],{dias:Math.max(1,Math.min(15,parseInt(fd.get('dias'),10)||15)),extra:num(fd.get('extra'))||'',bono:num(fd.get('bono'))||'',faltas:num(fd.get('faltas'))||'',otros:num(fd.get('otros'))||'',nota:String(fd.get('nota')||'').trim()});n.pay=pay;
     try{await staffPut([n])}catch(e){return 'No se pudo guardar. Intenta de nuevo.'}
     S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();toast('Ajustes guardados');return null});
 }
