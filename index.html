@@ -518,6 +518,11 @@ details[open] summary::after{transform:rotate(-135deg)}
 .pc-top{display:flex;align-items:center;gap:12px}.pc-net{margin-left:auto;font:800 20px var(--f-d);text-align:right}.pc-net small{display:block;font:600 11px var(--f-b);color:var(--ink3)}
 .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}.pc-grid small{display:block;font-size:11.5px;color:var(--ink3);font-weight:600}.pc-grid b{font-size:14px}
 .btn.paid{background:var(--ok-soft);color:var(--ok);box-shadow:none}
+
+.lawsw{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--surface2);box-shadow:inset 0 0 0 1.5px var(--line)}
+.lawsw button{border:0;border-radius:11px;min-height:38px;padding:0 8px;background:transparent;font-weight:700;font-size:13px;color:var(--ink2);transition:background .18s,color .18s,transform .16s var(--ease)}.lawsw button:active{transform:scale(.97)}
+.lawsw button.on{background:var(--brand);color:var(--brand-ink)}
+.lawall{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}.lawall span{font-weight:700;color:var(--ink2);font-size:13.5px}
 </style>
 </head>
 <body>
@@ -1742,10 +1747,10 @@ function payCalc(r,k,q){
   var per=payPeriod(k,q),days=15;
   if(r.ingreso){if(r.ingreso>per.to)return null;if(r.ingreso>per.from){var d=+r.ingreso.slice(8,10);days=Math.max(1,Math.min(15,(q===1?15:30)-d+1))}}
   var a=((r.pay||{})[k+'-'+q])||{},base=Math.round(sal/2*days/15),ex=cents(a.extra),bo=cents(a.bono),fa=cents(a.faltas),ot=cents(a.otros);
-  var ing=Math.max(0,base+ex+bo-fa),law=r.descuentos!==false&&sal>0;
+  var ing=Math.max(0,base+ex+bo-fa),law=(a.law==='1'||a.law==='0'?a.law==='1':r.descuentos!==false)&&sal>0;
   var isss=law?Math.round(Math.min(ing,PAY.isssTopeQ)*PAY.isss):0,afp=law?Math.round(Math.min(ing,PAY.afpTopeQ)*PAY.afp):0,isr=law?isrQ(ing-isss-afp):0;
   var ded=isss+afp+isr+ot;
-  return {r:r,k:k,q:q,per:per,days:days,sal:sal,base:base,ex:ex,bo:bo,fa:fa,ot:ot,ing:base+ex+bo,gross:ing,isss:isss,afp:afp,isr:isr,ded:ded+fa,net:ing-ded,paid:a.paid||'',nota:a.nota||'',law:law,noSal:sal<=0}
+  return {r:r,k:k,q:q,per:per,days:days,sal:sal,base:base,ex:ex,bo:bo,fa:fa,ot:ot,ing:base+ex+bo,gross:ing,isss:isss,afp:afp,isr:isr,ded:ded+fa,net:ing-ded,paid:a.paid||'',nota:a.nota||'',law:law,lawSet:a.law==='1'||a.law==='0',noSal:sal<=0}
 }
 function payRows(){var k=pmKey(),q=pqNum();return S.staff.map(function(r){return payCalc(r,k,q)}).filter(Boolean).sort(function(a,b){return String(a.r.data&&a.r.data.nombre).localeCompare(String(b.r.data&&b.r.data.nombre),'es')})}
 function payTot(rows){var t={n:0,ing:0,isss:0,afp:0,isr:0,ot:0,fa:0,ded:0,net:0};rows.forEach(function(x){t.n++;t.ing+=x.ing;t.isss+=x.isss;t.afp+=x.afp;t.isr+=x.isr;t.ot+=x.ot;t.fa+=x.fa;t.ded+=x.ded;t.net+=x.net});return t}
@@ -1759,13 +1764,15 @@ function viewPlanilla(){
   h+='<div class="seg2 two" role="tablist" style="margin-top:10px">'+[[1,'1ª quincena · pago 15'],[2,'2ª quincena · pago '+payDay(k,2)]].map(function(x){return '<button type="button" role="tab" class="'+(q===x[0]?'on':'')+'" aria-selected="'+(q===x[0])+'" data-a="pq" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
   if(!rows.length)return h+emptyBox('user','No hay empleados para pagar','Importa expedientes en la pestaña Expedientes y escribe el salario de cada uno en «Datos de empleo». Los retirados no entran a la planilla.');
   h+='<div class="money3 m4"><div class="mcell"><small>Empleados</small><b class="num">'+t.n+'</b></div><div class="mcell"><small>Total ingresos</small><b class="num">'+money(t.ing)+'</b></div><div class="mcell"><small>Descuentos</small><b class="num">'+money(t.ded)+'</b></div><div class="mcell hl"><small>Total a pagar</small><b class="num">'+money(t.net)+'</b></div></div>';
+  h+='<div class="lawall"><span>Aplicar a todos:</span><button type="button" class="btn ghost sm" data-a="pay-lawall" data-v="1">Con descuentos</button><button type="button" class="btn ghost sm" data-a="pay-lawall" data-v="0">Sin descuentos</button></div>';
   h+='<div class="stlist">'+rows.map(function(x){var d=x.r.data||{};
     if(x.noSal)return '<div class="stcard">'+avatar(x.r)+'<div class="stinfo"><b>'+esc(d.nombre)+'</b><small>Falta el salario de este empleado</small></div><button class="btn sm" type="button" data-a="staff-edit" data-id="'+x.r.id+'">Agregar salario</button></div>';
     return '<article class="paycard">'+'<div class="pc-top">'+avatar(x.r)+'<div class="stinfo"><b>'+esc(d.nombre||'Sin nombre')+'</b><small>'+esc(x.r.cargo||'Sin cargo')+' · '+esc(x.r.empresa||'Importoys')+'</small></div><div class="pc-net num">'+money(x.net)+'<small>líquido</small></div></div>'+
       '<div class="pc-grid"><div><small>Salario quincenal'+(x.days<15?' ('+x.days+' días)':'')+'</small><b class="num">'+money(x.base)+'</b></div>'+(x.ex+x.bo?'<div><small>Extras y bonos</small><b class="num">'+money(x.ex+x.bo)+'</b></div>':'')+(x.law?'<div><small>ISSS</small><b class="num">−'+money(x.isss)+'</b></div><div><small>AFP</small><b class="num">−'+money(x.afp)+'</b></div><div><small>Renta</small><b class="num">−'+money(x.isr)+'</b></div>':'')+(x.fa?'<div><small>Faltas</small><b class="num">−'+money(x.fa)+'</b></div>':'')+(x.ot?'<div><small>Otros descuentos</small><b class="num">−'+money(x.ot)+'</b></div>':'')+'</div>'+
+      '<div class="lawsw"><button type="button" class="'+(x.law?'on':'')+'" data-a="pay-law" data-id="'+x.r.id+'" data-v="1">Con descuentos de ley</button><button type="button" class="'+(x.law?'':'on')+'" data-a="pay-law" data-id="'+x.r.id+'" data-v="0">Sin descuentos</button></div>'+
       '<div class="acts-bar rbar"><button class="btn sm" type="button" data-a="pay-boleta" data-id="'+x.r.id+'">'+ic('download')+'Boleta PDF</button><button class="btn ghost sm" type="button" data-a="pay-adj" data-id="'+x.r.id+'">'+ic('edit')+'Ajustes</button><button class="btn ghost sm'+(x.paid?' paid':'')+'" type="button" data-a="pay-paid" data-id="'+x.r.id+'">'+(x.paid?ic('check')+'Pagado '+fdate(x.paid):'Marcar como pagado')+'</button></div></article>'}).join('')+'</div>';
   h+='<div class="acts-bar" style="margin-top:16px"><button class="btn" type="button" data-a="pay-planilla">'+ic('download')+'Planilla en PDF</button><button class="btn ghost" type="button" data-a="pay-boletas">'+ic('download')+'Todas las boletas en PDF</button></div>';
-  h+='<p class="hint" style="margin-top:10px">Descuentos de ley por quincena: ISSS 3% (tope $500 por quincena), AFP 7,25% y renta según la tabla quincenal de retención. Para quitar los descuentos de ley a un empleado, usa «Datos de empleo». Revisa los montos con tu contador antes de pagar.</p>';
+  h+='<p class="hint" style="margin-top:10px">Descuentos de ley por quincena: ISSS 3% (tope $500 por quincena), AFP 7,25% y renta según la tabla quincenal de retención. Elige «Con descuentos» o «Sin descuentos» en cada empleado, o para todos a la vez; la boleta y la planilla en PDF salen como lo elijas. En «Datos de empleo» dejas la opción que se usa por defecto. Revisa los montos con tu contador antes de pagar.</p>';
   return h;
 }
 function openPayAdj(id){
@@ -1780,6 +1787,13 @@ function openPayAdj(id){
     pay[key]=Object.assign({},pay[key],{extra:num(fd.get('extra'))||'',bono:num(fd.get('bono'))||'',faltas:num(fd.get('faltas'))||'',otros:num(fd.get('otros'))||'',nota:String(fd.get('nota')||'').trim()});n.pay=pay;
     try{await staffPut([n])}catch(e){return 'No se pudo guardar. Intenta de nuevo.'}
     S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();toast('Ajustes guardados');return null});
+}
+async function paySetLaw(ids,v){
+  var key=pmKey()+'-'+pqNum(),out=[];
+  S.staff.forEach(function(r){if(ids.indexOf(r.id)<0)return;var pay=Object.assign({},r.pay||{});pay[key]=Object.assign({},pay[key],{law:v});out.push(Object.assign({},r,{pay:pay}))});
+  if(!out.length)return;
+  try{await staffPut(out)}catch(e){toast('No se pudo guardar.',true);return}
+  S.staff=S.staff.map(function(x){return out.filter(function(n){return n.id===x.id})[0]||x});render();
 }
 async function payTogglePaid(id){
   var r=staffById(id);if(!r)return;var key=pmKey()+'-'+pqNum(),pay=Object.assign({},r.pay||{}),a=Object.assign({},pay[key]);
@@ -2130,6 +2144,8 @@ document.addEventListener('click',async function(ev){
     case 'pmonth':S.pm=t.dataset.v;render();break;
     case 'pq':S.pq=+t.dataset.v;render();break;
     case 'pay-adj':openPayAdj(id);break;
+    case 'pay-law':paySetLaw([id],t.dataset.v);break;
+    case 'pay-lawall':paySetLaw(payRows().filter(function(x){return !x.noSal}).map(function(x){return x.r.id}),t.dataset.v);break;
     case 'pay-paid':payTogglePaid(id);break;
     case 'pay-boleta':{var pr=payRows().filter(function(x){return x.r.id===id});if(!pr.length)break;toast('Preparando la boleta…');try{await payBoletas(pr);toast('Boleta lista')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
     case 'pay-boletas':{var pa=payRows().filter(function(x){return !x.noSal});if(!pa.length){toast('Agrega el salario de los empleados primero.',true);break}toast('Preparando las boletas…');try{await payBoletas(pa);toast('Boletas listas')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
