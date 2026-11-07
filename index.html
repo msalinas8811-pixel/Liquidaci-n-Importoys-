@@ -1773,7 +1773,8 @@ function viewPlanilla(){
       '<div class="pc-grid"><div><small>Salario quincenal'+(x.days<15?' ('+x.days+' días)':'')+'</small><b class="num">'+money(x.base)+'</b></div>'+(x.ex+x.bo?'<div><small>Extras y bonos</small><b class="num">'+money(x.ex+x.bo)+'</b></div>':'')+(x.law?'<div><small>ISSS</small><b class="num">−'+money(x.isss)+'</b></div><div><small>AFP</small><b class="num">−'+money(x.afp)+'</b></div><div><small>Renta</small><b class="num">−'+money(x.isr)+'</b></div>':'')+(x.fa?'<div><small>Faltas</small><b class="num">−'+money(x.fa)+'</b></div>':'')+(x.ot?'<div><small>Otros descuentos</small><b class="num">−'+money(x.ot)+'</b></div>':'')+'</div>'+
       '<div class="lawsw"><button type="button" class="'+(x.law?'on':'')+'" data-a="pay-law" data-id="'+x.r.id+'" data-v="1">Con descuentos de ley</button><button type="button" class="'+(x.law?'':'on')+'" data-a="pay-law" data-id="'+x.r.id+'" data-v="0">Sin descuentos</button></div>'+
       '<div class="acts-bar rbar"><button class="btn sm" type="button" data-a="pay-boleta" data-id="'+x.r.id+'">'+ic('download')+'Boleta PDF</button><button class="btn ghost sm" type="button" data-a="pay-adj" data-id="'+x.r.id+'">'+ic('edit')+'Ajustes</button><button class="btn ghost sm'+(x.paid?' paid':'')+'" type="button" data-a="pay-paid" data-id="'+x.r.id+'">'+(x.paid?ic('check')+'Pagado '+fdate(x.paid):'Marcar como pagado')+'</button></div></article>'}).join('')+'</div>';
-  h+='<div class="acts-bar" style="margin-top:16px"><button class="btn" type="button" data-a="pay-planilla">'+ic('download')+'Planilla en PDF</button><button class="btn ghost" type="button" data-a="pay-boletas">'+ic('download')+'Todas las boletas en PDF</button></div>';
+  h+='<div class="acts-bar" style="margin-top:16px"><button class="btn ghost" type="button" data-a="pay-sello">'+ic('image')+(selloCustom()?'Cambiar mi sello':'Usar mi propio sello')+'</button>'+(selloCustom()?'<button class="btn ghost" type="button" data-a="pay-sello-rm">Quitar mi sello</button>':'')+'</div>';
+  h+='<div class="acts-bar" style="margin-top:10px"><button class="btn" type="button" data-a="pay-planilla">'+ic('download')+'Planilla en PDF</button><button class="btn ghost" type="button" data-a="pay-boletas">'+ic('download')+'Todas las boletas en PDF</button></div>';
   h+='<p class="hint" style="margin-top:10px">Descuentos de ley por quincena: ISSS 3% (tope $500 por quincena), AFP 7,25% y renta según la tabla quincenal de retención. Elige «Con descuentos» o «Sin descuentos» en cada empleado, o para todos a la vez; la boleta y la planilla en PDF salen como lo elijas. En «Datos de empleo» dejas la opción que se usa por defecto. Revisa los montos con tu contador antes de pagar.</p>';
   return h;
 }
@@ -1805,6 +1806,28 @@ async function payTogglePaid(id){
   S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();
 }
 /* PDF */
+
+var SELLO_KEY='importoys-sello-v1';
+function selloCustom(){try{return localStorage.getItem(SELLO_KEY)||''}catch(e){return ''}}
+function sealPng(name){
+  return new Promise(function(res){
+    var S0=440,c=document.createElement('canvas');c.width=c.height=S0;var x=c.getContext('2d'),ink='rgb(26,60,150)';
+    x.translate(S0/2,S0/2);x.rotate(-12*Math.PI/180);x.strokeStyle=ink;x.fillStyle=ink;
+    x.lineWidth=9;x.beginPath();x.arc(0,0,200,0,7);x.stroke();x.lineWidth=3;x.beginPath();x.arc(0,0,128,0,7);x.stroke();
+    var arc=function(t,r,top){x.save();x.font='700 32px Arial,Helvetica,sans-serif';x.textAlign='center';x.textBaseline='middle';
+      var ws=t.split('').map(function(ch){return x.measureText(ch).width+3}),tot=ws.reduce(function(a,b){return a+b},0)/r,acc=-tot/2;
+      for(var i=0;i<t.length;i++){var a=acc+ws[i]/(2*r);acc+=ws[i]/r;
+        x.save();x.rotate(top?a:Math.PI-a);x.translate(0,-r);if(!top)x.rotate(Math.PI);x.fillText(t[i],0,0);x.restore()}x.restore()};
+    arc(String(name).toUpperCase(),166,true);arc('EL SALVADOR, C.A.',166,false);
+    var im=document.querySelector('img.logo');
+    try{
+      var o=document.createElement('canvas'),w=170,h=Math.round(170*(im.naturalHeight/im.naturalWidth));o.width=w;o.height=h;var ox=o.getContext('2d');ox.drawImage(im,0,0,w,h);
+      var d=ox.getImageData(0,0,w,h),p=d.data;for(var i=0;i<p.length;i+=4){var lum=(p[i]*.3+p[i+1]*.59+p[i+2]*.11)/255,al=(p[i+3]/255)*Math.pow(1-lum,.7)*1.15;p[i]=26;p[i+1]=60;p[i+2]=150;p[i+3]=Math.min(255,al*255)}
+      ox.putImageData(d,0,0);x.drawImage(o,-w/2,-h/2,w,h);
+    }catch(e){x.font='800 40px Arial';x.textAlign='center';x.fillText('★',0,12)}
+    res(c.toDataURL('image/png'));
+  });
+}
 async function payKit(){
   await loadPdfLibs();var L=window.PDFLib,doc=await L.PDFDocument.create(),F=await doc.embedFont(L.StandardFonts.Helvetica),FB=await doc.embedFont(L.StandardFonts.HelveticaBold);
   var K={L:L,doc:doc,F:F,FB:FB,page:null,PW:0,PH:0};
@@ -1816,6 +1839,7 @@ async function payKit(){
   K.rect=function(x,top,w,h,col){K.page.drawRectangle({x:x,y:K.PH-top-h,width:w,height:h,color:K.rgb(col)})};
   K.line=function(x1,t,x2,col,th,dash){K.page.drawLine({start:{x:x1,y:K.PH-t},end:{x:x2,y:K.PH-t},thickness:th||.8,color:K.rgb(col||C.LINE),dashArray:dash})};
   K.fit=function(s,z,b,w){s=CL(s);while(s.length>1&&K.wid(s,z,b)>w)s=s.slice(0,-1);return s};
+  K.seals={};var cs=selloCustom();for(var nm of ['Importoys','Importshop']){var su=cs||await sealPng(nm);try{K.seals[nm]=await doc.embedPng(Uint8Array.from(atob(su.split(',')[1]),function(c){return c.charCodeAt(0)}))}catch(e){K.seals[nm]=null}}
   K.logo=null;var lp=await logoPng();if(lp){try{K.logo=await doc.embedPng(Uint8Array.from(atob(lp.split(',')[1]),function(c){return c.charCodeAt(0)}))}catch(e){}}
   return K;
 }
@@ -1850,16 +1874,12 @@ function boletaDraw(K,x,T){
   K.rect(M+W-250,y,250,32,C.NAVY);K.rect(M+W-250,y,4,32,C.SUN);
   K.txt('LÍQUIDO A RECIBIR',M+W-238,y+10,10,true,[255,255,255]);K.txt(m2(x.net),M+W-10,y+7,17,true,C.SUN,'r');
   if(x.nota)K.txt('Nota: '+K.fit(x.nota,8.5,false,W-280),M,y+10,8.5,false,C.GRAY);
-  y+=60;
+  y+=104;
+  var sl=K.seals[r.empresa==='Importshop'?'Importshop':'Importoys'];if(sl){var ss=Math.min(90/sl.width,90/sl.height);K.page.drawImage(sl,{x:M+110-sl.width*ss/2,y:K.PH-y-8,width:sl.width*ss,height:sl.height*ss,opacity:.92})}
   K.line(M+10,y,M+210,C.DARK,.7);K.line(K.PW-M-210,y,K.PW-M-10,C.DARK,.7);
   K.txt('Entregó (empresa)',M+110,y+4,8.5,false,C.GRAY,'c');K.txt('Recibí conforme (empleado)',K.PW-M-110,y+4,8.5,false,C.GRAY,'c');
 }
-function boletaPage(K,x){
-  K.add(595.28,841.89);boletaDraw(K,x,36);
-  K.line(36,K.PH/2+2,K.PW-36,C_GRAY(K),.8,[5,4]);K.txt('Cortar aquí',K.PW/2,K.PH/2+5,7,false,K.C.GRAY,'c');
-  boletaDraw(K,x,K.PH/2+22);
-  K.txt('Copia del empleado',36,K.PH/2-30,7.5,false,K.C.GRAY);K.txt('Copia de la empresa',36,K.PH-30,7.5,false,K.C.GRAY);
-}
+function boletaPage(K,x){K.add(595.28,470);boletaDraw(K,x,34)}
 function C_GRAY(K){return K.C.GRAY}
 async function payBoletas(list){
   var K=await payKit();list.forEach(function(x){boletaPage(K,x)});
@@ -2146,6 +2166,8 @@ document.addEventListener('click',async function(ev){
     case 'ptab':S.pTab=t.dataset.v;S.anim=true;render();break;
     case 'pmonth':S.pm=t.dataset.v;render();break;
     case 'pq':S.pq=+t.dataset.v;render();break;
+    case 'pay-sello':{var si=document.createElement('input');si.type='file';si.accept='image/*';si.onchange=function(){var f=si.files&&si.files[0];if(!f)return;var u=URL.createObjectURL(f),im=new Image();im.onload=function(){var m=Math.min(1,500/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*m);c.height=Math.round(im.naturalHeight*m);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);try{localStorage.setItem(SELLO_KEY,c.toDataURL('image/png'));toast('Sello guardado');render()}catch(e){toast('No se pudo guardar el sello.',true)}};im.onerror=function(){toast('No se pudo leer esa imagen.',true)};im.src=u};si.click();break}
+    case 'pay-sello-rm':try{localStorage.removeItem(SELLO_KEY)}catch(e){}toast('Sello quitado');render();break;
     case 'pay-adj':openPayAdj(id);break;
     case 'pay-law':paySetLaw([id],t.dataset.v);break;
     case 'pay-lawall':paySetLaw(payRows().filter(function(x){return !x.noSal}).map(function(x){return x.r.id}),t.dataset.v);break;
