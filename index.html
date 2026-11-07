@@ -511,6 +511,13 @@ details[open] summary::after{transform:rotate(-135deg)}
 .seg2.two{grid-template-columns:1fr 1fr!important;margin-bottom:12px}
 .mchip.late{background:var(--bad-soft);color:var(--bad)}
 .r-foot.rfx{flex-wrap:wrap;gap:10px}.rbar{display:flex;flex-wrap:wrap;gap:8px;margin:0!important;align-items:center}
+
+.money3.m4{grid-template-columns:repeat(2,1fr)}@media (min-width:700px){.money3.m4{grid-template-columns:repeat(4,1fr)}}
+.mcell.hl{background:var(--brand);color:#fff}.mcell.hl small{color:rgba(255,255,255,.8)}
+.paycard{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;display:grid;gap:12px}
+.pc-top{display:flex;align-items:center;gap:12px}.pc-net{margin-left:auto;font:800 20px var(--f-d);text-align:right}.pc-net small{display:block;font:600 11px var(--f-b);color:var(--ink3)}
+.pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}.pc-grid small{display:block;font-size:11.5px;color:var(--ink3);font-weight:600}.pc-grid b{font-size:14px}
+.btn.paid{background:var(--ok-soft);color:var(--ok);box-shadow:none}
 </style>
 </head>
 <body>
@@ -1507,7 +1514,8 @@ function viewPersonal(){
   if(!S.staffLoaded){loadStaff();return '<div class="empty"><div class="ico">'+ic('user')+'</div><strong>Cargando personal…</strong></div>'}
   if(S.staffErr)return emptyBox('alert','No se puede guardar aquí','Este navegador no permite guardar expedientes (¿modo privado?). Abre la app en una ventana normal.');
   var r=S.staffSel&&staffById(S.staffSel);
-  return r?staffDetail(r):staffList();
+  if(r)return staffDetail(r);
+  return S.pTab==='pay'?viewPlanilla():staffTabs()+staffList();
 }
 function staffList(){
   var l=S.staff.slice().sort(function(a,b){return String(a.data&&a.data.nombre).localeCompare(String(b.data&&b.data.nombre),'es')});
@@ -1544,11 +1552,13 @@ function openStaffEdit(id){
    '<div class="grid2"><div class="fld"><label for="f-ing">Fecha de ingreso</label><input id="f-ing" name="ingreso" type="date" value="'+esc(r.ingreso||'')+'"></div>'+
    '<div class="fld"><label for="f-sal">Salario ($)</label><input id="f-sal" name="salario" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(r.salario||'')+'"></div></div>'+
    '<div class="fld"><span class="lbl">Estado</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="estado" value="activo"'+(r.estado!=='retirado'?' checked':'')+'><span>Activo</span></label><label class="seg"><input type="radio" name="estado" value="retirado"'+(r.estado==='retirado'?' checked':'')+'><span>Retirado</span></label></div></div>'+
+   '<div class="fld"><span class="lbl">Empresa que paga el salario</span><div class="segs" role="radiogroup">'+COMPANIES.map(function(h){return '<label class="seg h-'+h+'"><input type="radio" name="empresa" value="'+h+'"'+((r.empresa||'Importoys')===h?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div></div>'+
+   '<div class="fld"><span class="lbl">Descuentos de ley (ISSS, AFP y renta)</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="desc" value="1"'+(r.descuentos!==false?' checked':'')+'><span>Aplicar</span></label><label class="seg"><input type="radio" name="desc" value="0"'+(r.descuentos===false?' checked':'')+'><span>No aplicar</span></label></div></div>'+
    '<div class="fld"><label for="f-notas">Notas internas</label><textarea id="f-notas" name="notas" rows="3">'+esc(r.notas||'')+'</textarea></div>'+formFoot()+'</form>';
   openSheet('Datos de empleo',html,async function(fd){
-    var n=Object.assign({},r,{cargo:String(fd.get('cargo')||'').trim(),ingreso:String(fd.get('ingreso')||''),salario:fd.get('salario')===''?'':num(fd.get('salario')),estado:fd.get('estado')||'activo',notas:String(fd.get('notas')||'').trim()});
+    var n=Object.assign({},r,{cargo:String(fd.get('cargo')||'').trim(),ingreso:String(fd.get('ingreso')||''),salario:fd.get('salario')===''?'':num(fd.get('salario')),estado:fd.get('estado')||'activo',empresa:fd.get('empresa')||'Importoys',descuentos:fd.get('desc')!=='0',notas:String(fd.get('notas')||'').trim()});
     try{await staffPut([n])}catch(e){return 'No se pudo guardar. Intenta de nuevo.'}
-    S.staff=S.staff.map(function(x){return x.id===n.id?n:x});toast('Datos guardados');return null;
+    S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();toast('Datos guardados');return null;
   });
 }
 async function importStaff(files){
@@ -1715,6 +1725,152 @@ async function resPdf(r){
   line(M,PH/2+2,PW-M,GRAY,.8,[5,4]);txt('Cortar aquí',PW/2,PH/2+5,7,false,GRAY,'c');
   receipt(PH/2+22,'Copia del negocio');
   dlBlob(new Blob([await doc.save()],{type:'application/pdf'}),'recibo-reserva-'+resNum(r)+'-'+slugName(r.customer)+'.pdf');
+}
+
+/* ---------- planilla y boletas de pago ---------- */
+S.pTab='exp';S.pm=null;S.pq=0;
+var PAY={isss:0.03,isssTopeQ:50000,afp:0.0725,afpTopeQ:352253};
+function pmKey(){return S.pm||today().slice(0,7)}
+function pqNum(){return S.pq||(+today().slice(8,10)<=15?1:2)}
+function lastDayOf(k){var p=k.split('-');return new Date(+p[0],+p[1],0).getDate()}
+function payDay(k,q){return q===1?15:Math.min(30,lastDayOf(k))}
+function payPeriod(k,q){var e=payDay(k,q);return {from:k+'-'+(q===1?'01':'16'),to:k+'-'+String(q===1?15:lastDayOf(k)).padStart(2,'0'),pay:k+'-'+String(e).padStart(2,'0')}}
+function payLabel(k,q){return (q===1?'1ª':'2ª')+' quincena de '+mlabel(k)}
+function isrQ(b){b=b/100;var r=b<=275?0:b<=447.62?(b-275)*.10+8.83:b<=1019.05?(b-447.62)*.20+30:(b-1019.05)*.30+144.28;return Math.round(r*100)}
+function payCalc(r,k,q){
+  var sal=cents(r.salario);if(r.estado==='retirado')return null;
+  var per=payPeriod(k,q),days=15;
+  if(r.ingreso){if(r.ingreso>per.to)return null;if(r.ingreso>per.from){var d=+r.ingreso.slice(8,10);days=Math.max(1,Math.min(15,(q===1?15:30)-d+1))}}
+  var a=((r.pay||{})[k+'-'+q])||{},base=Math.round(sal/2*days/15),ex=cents(a.extra),bo=cents(a.bono),fa=cents(a.faltas),ot=cents(a.otros);
+  var ing=Math.max(0,base+ex+bo-fa),law=r.descuentos!==false&&sal>0;
+  var isss=law?Math.round(Math.min(ing,PAY.isssTopeQ)*PAY.isss):0,afp=law?Math.round(Math.min(ing,PAY.afpTopeQ)*PAY.afp):0,isr=law?isrQ(ing-isss-afp):0;
+  var ded=isss+afp+isr+ot;
+  return {r:r,k:k,q:q,per:per,days:days,sal:sal,base:base,ex:ex,bo:bo,fa:fa,ot:ot,ing:base+ex+bo,gross:ing,isss:isss,afp:afp,isr:isr,ded:ded+fa,net:ing-ded,paid:a.paid||'',nota:a.nota||'',law:law,noSal:sal<=0}
+}
+function payRows(){var k=pmKey(),q=pqNum();return S.staff.map(function(r){return payCalc(r,k,q)}).filter(Boolean).sort(function(a,b){return String(a.r.data&&a.r.data.nombre).localeCompare(String(b.r.data&&b.r.data.nombre),'es')})}
+function payTot(rows){var t={n:0,ing:0,isss:0,afp:0,isr:0,ot:0,fa:0,ded:0,net:0};rows.forEach(function(x){t.n++;t.ing+=x.ing;t.isss+=x.isss;t.afp+=x.afp;t.isr+=x.isr;t.ot+=x.ot;t.fa+=x.fa;t.ded+=x.ded;t.net+=x.net});return t}
+function staffTabs(){return '<div class="seg2 two" role="tablist">'+[['exp','Expedientes'],['pay','Planilla de pago']].map(function(t){return '<button type="button" role="tab" class="'+(S.pTab===t[0]?'on':'')+'" aria-selected="'+(S.pTab===t[0])+'" data-a="ptab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'}
+function viewPlanilla(){
+  var k=pmKey(),q=pqNum(),per=payPeriod(k,q),rows=payRows(),t=payTot(rows),now=new Date(),ms=[];
+  for(var i=-5;i<=1;i++){var d=new Date(now.getFullYear(),now.getMonth()+i,1);ms.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))}
+  if(ms.indexOf(k)<0)ms.unshift(k);
+  var h=staffTabs()+'<div class="sec-head"><div><h2>Planilla de pago</h2><p class="sub">'+payLabel(k,q)+' · pago el '+fdate(per.pay)+'</p></div></div>';
+  h+='<div class="monthbar"><div class="chips" role="group" aria-label="Mes">'+ms.map(function(m){return '<button type="button" class="chip'+(k===m?' on':'')+'" data-a="pmonth" data-v="'+m+'">'+mshort(m)+'</button>'}).join('')+'</div></div>';
+  h+='<div class="seg2 two" role="tablist" style="margin-top:10px">'+[[1,'1ª quincena · pago 15'],[2,'2ª quincena · pago '+payDay(k,2)]].map(function(x){return '<button type="button" role="tab" class="'+(q===x[0]?'on':'')+'" aria-selected="'+(q===x[0])+'" data-a="pq" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
+  if(!rows.length)return h+emptyBox('user','No hay empleados para pagar','Importa expedientes en la pestaña Expedientes y escribe el salario de cada uno en «Datos de empleo». Los retirados no entran a la planilla.');
+  h+='<div class="money3 m4"><div class="mcell"><small>Empleados</small><b class="num">'+t.n+'</b></div><div class="mcell"><small>Total ingresos</small><b class="num">'+money(t.ing)+'</b></div><div class="mcell"><small>Descuentos</small><b class="num">'+money(t.ded)+'</b></div><div class="mcell hl"><small>Total a pagar</small><b class="num">'+money(t.net)+'</b></div></div>';
+  h+='<div class="stlist">'+rows.map(function(x){var d=x.r.data||{};
+    if(x.noSal)return '<div class="stcard">'+avatar(x.r)+'<div class="stinfo"><b>'+esc(d.nombre)+'</b><small>Falta el salario de este empleado</small></div><button class="btn sm" type="button" data-a="staff-edit" data-id="'+x.r.id+'">Agregar salario</button></div>';
+    return '<article class="paycard">'+'<div class="pc-top">'+avatar(x.r)+'<div class="stinfo"><b>'+esc(d.nombre||'Sin nombre')+'</b><small>'+esc(x.r.cargo||'Sin cargo')+' · '+esc(x.r.empresa||'Importoys')+'</small></div><div class="pc-net num">'+money(x.net)+'<small>líquido</small></div></div>'+
+      '<div class="pc-grid"><div><small>Salario quincenal'+(x.days<15?' ('+x.days+' días)':'')+'</small><b class="num">'+money(x.base)+'</b></div>'+(x.ex+x.bo?'<div><small>Extras y bonos</small><b class="num">'+money(x.ex+x.bo)+'</b></div>':'')+(x.law?'<div><small>ISSS</small><b class="num">−'+money(x.isss)+'</b></div><div><small>AFP</small><b class="num">−'+money(x.afp)+'</b></div><div><small>Renta</small><b class="num">−'+money(x.isr)+'</b></div>':'')+(x.fa?'<div><small>Faltas</small><b class="num">−'+money(x.fa)+'</b></div>':'')+(x.ot?'<div><small>Otros descuentos</small><b class="num">−'+money(x.ot)+'</b></div>':'')+'</div>'+
+      '<div class="acts-bar rbar"><button class="btn sm" type="button" data-a="pay-boleta" data-id="'+x.r.id+'">'+ic('download')+'Boleta PDF</button><button class="btn ghost sm" type="button" data-a="pay-adj" data-id="'+x.r.id+'">'+ic('edit')+'Ajustes</button><button class="btn ghost sm'+(x.paid?' paid':'')+'" type="button" data-a="pay-paid" data-id="'+x.r.id+'">'+(x.paid?ic('check')+'Pagado '+fdate(x.paid):'Marcar como pagado')+'</button></div></article>'}).join('')+'</div>';
+  h+='<div class="acts-bar" style="margin-top:16px"><button class="btn" type="button" data-a="pay-planilla">'+ic('download')+'Planilla en PDF</button><button class="btn ghost" type="button" data-a="pay-boletas">'+ic('download')+'Todas las boletas en PDF</button></div>';
+  h+='<p class="hint" style="margin-top:10px">Descuentos de ley por quincena: ISSS 3% (tope $500 por quincena), AFP 7,25% y renta según la tabla quincenal de retención. Para quitar los descuentos de ley a un empleado, usa «Datos de empleo». Revisa los montos con tu contador antes de pagar.</p>';
+  return h;
+}
+function openPayAdj(id){
+  var r=staffById(id);if(!r)return;var k=pmKey(),q=pqNum(),a=((r.pay||{})[k+'-'+q])||{};
+  var f=function(n,l,v,ph){return '<div class="fld"><label for="f-'+n+'">'+l+'</label><input id="f-'+n+'" name="'+n+'" type="number" inputmode="decimal" min="0" step="0.01" placeholder="'+(ph||'0.00')+'" value="'+esc(v||'')+'"></div>'};
+  var html='<form id="f" data-kind="payadj" novalidate><p class="hint" style="margin:0 0 12px">'+esc((r.data&&r.data.nombre)||'')+' · '+payLabel(k,q)+'</p>'+
+    '<div class="grid2">'+f('extra','Horas extra ($)',a.extra)+f('bono','Bonos o comisiones ($)',a.bono)+'</div>'+
+    '<div class="grid2">'+f('faltas','Descuento por faltas ($)',a.faltas)+f('otros','Adelantos o préstamos ($)',a.otros)+'</div>'+
+    '<div class="fld"><label for="f-nota">Nota <small>(sale en la boleta)</small></label><input id="f-nota" name="nota" type="text" autocomplete="off" value="'+esc(a.nota||'')+'"></div>'+formFoot()+'</form>';
+  openSheet('Ajustes de la quincena',html,async function(fd){
+    var key=k+'-'+q,n=Object.assign({},r),pay=Object.assign({},r.pay||{});
+    pay[key]=Object.assign({},pay[key],{extra:num(fd.get('extra'))||'',bono:num(fd.get('bono'))||'',faltas:num(fd.get('faltas'))||'',otros:num(fd.get('otros'))||'',nota:String(fd.get('nota')||'').trim()});n.pay=pay;
+    try{await staffPut([n])}catch(e){return 'No se pudo guardar. Intenta de nuevo.'}
+    S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();toast('Ajustes guardados');return null});
+}
+async function payTogglePaid(id){
+  var r=staffById(id);if(!r)return;var key=pmKey()+'-'+pqNum(),pay=Object.assign({},r.pay||{}),a=Object.assign({},pay[key]);
+  a.paid=a.paid?'':today();pay[key]=a;var n=Object.assign({},r,{pay:pay});
+  try{await staffPut([n])}catch(e){toast('No se pudo guardar.',true);return}
+  S.staff=S.staff.map(function(x){return x.id===n.id?n:x});render();
+}
+/* PDF */
+async function payKit(){
+  await loadPdfLibs();var L=window.PDFLib,doc=await L.PDFDocument.create(),F=await doc.embedFont(L.StandardFonts.Helvetica),FB=await doc.embedFont(L.StandardFonts.HelveticaBold);
+  var K={L:L,doc:doc,F:F,FB:FB,page:null,PW:0,PH:0};
+  var C={NAVY:[15,31,82],BLUE:[36,89,224],GRAY:[96,110,145],DARK:[13,27,63],LIGHT:[232,238,255],SUN:[255,194,46],LINE:[205,213,235],STRIPE:[246,248,253],OK:[18,128,92]};
+  K.C=C;K.rgb=function(a){return L.rgb(a[0]/255,a[1]/255,a[2]/255)};
+  K.add=function(w,h){K.PW=w;K.PH=h;K.page=doc.addPage([w,h]);return K.page};
+  K.wid=function(s,z,b){return (b?FB:F).widthOfTextAtSize(CL(s),z)};
+  K.txt=function(s,x,top,z,b,col,al){s=CL(s);if(al==='r')x-=K.wid(s,z,b);if(al==='c')x-=K.wid(s,z,b)/2;K.page.drawText(s,{x:x,y:K.PH-top-z*0.85,size:z,font:b?FB:F,color:K.rgb(col||C.DARK)})};
+  K.rect=function(x,top,w,h,col){K.page.drawRectangle({x:x,y:K.PH-top-h,width:w,height:h,color:K.rgb(col)})};
+  K.line=function(x1,t,x2,col,th,dash){K.page.drawLine({start:{x:x1,y:K.PH-t},end:{x:x2,y:K.PH-t},thickness:th||.8,color:K.rgb(col||C.LINE),dashArray:dash})};
+  K.fit=function(s,z,b,w){s=CL(s);while(s.length>1&&K.wid(s,z,b)>w)s=s.slice(0,-1);return s};
+  K.logo=null;var lp=await logoPng();if(lp){try{K.logo=await doc.embedPng(Uint8Array.from(atob(lp.split(',')[1]),function(c){return c.charCodeAt(0)}))}catch(e){}}
+  return K;
+}
+function boletaDraw(K,x,T){
+  var C=K.C,r=x.r,d=r.data||{},W=K.PW-72,M=36,m2=money;
+  if(K.logo)K.page.drawImage(K.logo,{x:M,y:K.PH-T-46,width:55,height:46});
+  K.txt(r.empresa==='Importshop'?'Importshop El Salvador':'Importoys El Salvador',M+66,T+3,14,true);
+  K.txt('Boleta de pago',M+66,T+22,11,false,C.BLUE);
+  K.txt(payLabel(x.k,x.q),K.PW-M,T+3,11,true,C.NAVY,'r');
+  K.txt('Del '+fdate(x.per.from)+' al '+fdate(x.per.to),K.PW-M,T+19,9,false,C.GRAY,'r');
+  K.txt('Fecha de pago: '+fdate(x.per.pay),K.PW-M,T+32,9,true,C.DARK,'r');
+  K.line(M,T+54,K.PW-M,C.BLUE,1.6);
+  var y=T+64,col=function(l,v,cx){K.txt(l,cx,y,8,false,C.GRAY);K.txt(K.fit(v||'-',10,true,160),cx,y+10,10,true)};
+  col('Empleado',d.nombre,M);col('DUI',d.dui,M+190);col('NIT',d.nit,M+300);col('Cargo',r.cargo,M+410);
+  y+=30;col('N° ISSS',d.isss,M);col('N° AFP',d.afp,M+190);col('Fecha de ingreso',r.ingreso?fdate(r.ingreso):'',M+300);col('Salario mensual',x.sal?m2(x.sal):'',M+410);
+  y+=36;
+  var hw=(W-14)/2,rowsI=[['Salario quincenal'+(x.days<15?' ('+x.days+' días)':''),x.base]],rowsD=[];
+  if(x.ex)rowsI.push(['Horas extra',x.ex]);if(x.bo)rowsI.push(['Bonos / comisiones',x.bo]);
+  if(x.law){rowsD.push(['ISSS (3%)',x.isss],['AFP (7,25%)',x.afp],['Renta (retención)',x.isr])}
+  if(x.fa)rowsD.push(['Descuento por faltas',x.fa]);if(x.ot)rowsD.push(['Adelantos / préstamos',x.ot]);
+  if(!rowsD.length)rowsD.push(['Sin descuentos',0]);
+  K.rect(M,y,hw,17,C.BLUE);K.rect(M+hw+14,y,hw,17,C.NAVY);K.txt('Ingresos',M+8,y+4,9,true,[255,255,255]);K.txt('Descuentos',M+hw+22,y+4,9,true,[255,255,255]);
+  var n=Math.max(rowsI.length,rowsD.length,4);
+  for(var i=0;i<n;i++){var ty=y+17+i*16;if(i%2===0){K.rect(M,ty,hw,16,C.STRIPE);K.rect(M+hw+14,ty,hw,16,C.STRIPE)}
+    if(rowsI[i]){K.txt(rowsI[i][0],M+8,ty+3,9.5);K.txt(m2(rowsI[i][1]),M+hw-8,ty+3,9.5,false,C.DARK,'r')}
+    if(rowsD[i]){K.txt(rowsD[i][0],M+hw+22,ty+3,9.5);K.txt(rowsD[i][1]?'-'+m2(rowsD[i][1]):'-',M+W-8,ty+3,9.5,false,C.DARK,'r')}}
+  var by=y+17+n*16;
+  K.rect(M,by,hw,18,C.LIGHT);K.rect(M+hw+14,by,hw,18,C.LIGHT);
+  K.txt('Total ingresos',M+8,by+4,9.5,true);K.txt(m2(x.ing),M+hw-8,by+4,9.5,true,C.DARK,'r');
+  K.txt('Total descuentos',M+hw+22,by+4,9.5,true);K.txt(m2(x.ded),M+W-8,by+4,9.5,true,C.DARK,'r');
+  y=by+30;
+  K.rect(M+W-250,y,250,32,C.NAVY);K.rect(M+W-250,y,4,32,C.SUN);
+  K.txt('LÍQUIDO A RECIBIR',M+W-238,y+10,10,true,[255,255,255]);K.txt(m2(x.net),M+W-10,y+7,17,true,C.SUN,'r');
+  if(x.nota)K.txt('Nota: '+K.fit(x.nota,8.5,false,W-280),M,y+10,8.5,false,C.GRAY);
+  y+=60;
+  K.line(M+10,y,M+210,C.DARK,.7);K.line(K.PW-M-210,y,K.PW-M-10,C.DARK,.7);
+  K.txt('Entregó (empresa)',M+110,y+4,8.5,false,C.GRAY,'c');K.txt('Recibí conforme (empleado)',K.PW-M-110,y+4,8.5,false,C.GRAY,'c');
+}
+function boletaPage(K,x){
+  K.add(595.28,841.89);boletaDraw(K,x,36);
+  K.line(36,K.PH/2+2,K.PW-36,C_GRAY(K),.8,[5,4]);K.txt('Cortar aquí',K.PW/2,K.PH/2+5,7,false,K.C.GRAY,'c');
+  boletaDraw(K,x,K.PH/2+22);
+  K.txt('Copia del empleado',36,K.PH/2-30,7.5,false,K.C.GRAY);K.txt('Copia de la empresa',36,K.PH-30,7.5,false,K.C.GRAY);
+}
+function C_GRAY(K){return K.C.GRAY}
+async function payBoletas(list){
+  var K=await payKit();list.forEach(function(x){boletaPage(K,x)});
+  var one=list.length===1?slugName(list[0].r.data&&list[0].r.data.nombre):'todas';
+  dlBlob(new Blob([await K.doc.save()],{type:'application/pdf'}),'boleta-'+one+'-'+pmKey()+'-q'+pqNum()+'.pdf');
+}
+async function payPlanilla(){
+  var K=await payKit(),C=K.C,rows=payRows().filter(function(x){return !x.noSal}),t=payTot(rows),k=pmKey(),q=pqNum(),per=payPeriod(k,q),m2=money,M=30;
+  var cols=[['#',20,'l'],['Empleado',150,'l'],['DUI',66,'l'],['Cargo',70,'l'],['Salario',50,'r'],['Extras',44,'r'],['Total ing.',52,'r'],['ISSS',40,'r'],['AFP',40,'r'],['Renta',40,'r'],['Otros desc.',50,'r'],['Total desc.',52,'r'],['Líquido',56,'r'],['Firma',100,'l']];
+  var tw=cols.reduce(function(a,c){return a+c[1]},0),PW=841.89,sc=(PW-2*M)/tw;cols=cols.map(function(c){return [c[0],c[1]*sc,c[2]]});
+  var y,pn=0;
+  function head(){K.add(PW,595.28);pn++;y=M;
+    if(K.logo)K.page.drawImage(K.logo,{x:M,y:K.PH-M-34,width:41,height:34});
+    K.txt('Planilla de pago - Importoys El Salvador',M+50,y,15,true);K.txt(payLabel(k,q)+'   |   Del '+fdate(per.from)+' al '+fdate(per.to)+'   |   Pago: '+fdate(per.pay),M+50,y+20,9.5,false,C.GRAY);y+=48;
+    K.rect(M,y,PW-2*M,20,C.BLUE);var x=M;cols.forEach(function(c){var tx=c[2]==='r'?x+c[1]-5:x+5;K.txt(c[0],tx,y+6,8,true,[255,255,255],c[2]);x+=c[1]});y+=20}
+  head();
+  var rowh=24;
+  rows.forEach(function(r,i){
+    if(y+rowh>K.PH-M-30)head();
+    if(i%2===0)K.rect(M,y,PW-2*M,rowh,C.STRIPE);var d=r.r.data||{};
+    var cells=[String(i+1),d.nombre||'',d.dui||'-',r.r.cargo||'-',m2(r.base),(r.ex+r.bo)?m2(r.ex+r.bo):'-',m2(r.ing),r.isss?m2(r.isss):'-',r.afp?m2(r.afp):'-',r.isr?m2(r.isr):'-',(r.fa+r.ot)?m2(r.fa+r.ot):'-',m2(r.ded),m2(r.net),''];
+    var x=M;cells.forEach(function(s,ci){var c=cols[ci],b=ci===12,tx=c[2]==='r'?x+c[1]-5:x+5;K.txt(K.fit(s,8.5,b,c[1]-9),tx,y+8,8.5,b,C.DARK,c[2]);x+=c[1]});
+    K.line(M+tw*sc-cols[13][1]+6,y+rowh-5,M+tw*sc-6,C.GRAY,.5);y+=rowh});
+  if(y+rowh>K.PH-M-30)head();
+  K.rect(M,y,PW-2*M,rowh,C.LIGHT);var x=M,tc=['','Totales ('+t.n+' empleados)','','',m2(rows.reduce(function(a,r){return a+r.base},0)),m2(rows.reduce(function(a,r){return a+r.ex+r.bo},0)),m2(t.ing),m2(t.isss),m2(t.afp),m2(t.isr),m2(t.fa+t.ot),m2(t.ded),m2(t.net),''];
+  tc.forEach(function(s,ci){var c=cols[ci],tx=c[2]==='r'?x+c[1]-5:x+5;K.txt(K.fit(s,8.5,true,c[1]-9),tx,y+8,8.5,true,C.DARK,c[2]);x+=c[1]});
+  K.doc.getPages().forEach(function(p,i,a){var s='Página '+(i+1)+' de '+a.length;p.drawText(s,{x:PW-M-K.F.widthOfTextAtSize(s,8),y:16,size:8,font:K.F,color:K.rgb(C.GRAY)})});
+  dlBlob(new Blob([await K.doc.save()],{type:'application/pdf'}),'planilla-'+k+'-q'+q+'.pdf');
 }
 
 
@@ -1970,6 +2126,14 @@ document.addEventListener('click',async function(ev){
     
     case 'data':openData();break;
     case 'res-pdf':{var rp=S.res.filter(function(x){return x.id===id})[0];if(!rp)break;toast('Preparando el recibo…');try{await resPdf(rp);toast('Recibo listo')}catch(e){console.error(e);toast('No se pudo crear el recibo. Revisa tu internet e intenta de nuevo.',true)}break}
+    case 'ptab':S.pTab=t.dataset.v;S.anim=true;render();break;
+    case 'pmonth':S.pm=t.dataset.v;render();break;
+    case 'pq':S.pq=+t.dataset.v;render();break;
+    case 'pay-adj':openPayAdj(id);break;
+    case 'pay-paid':payTogglePaid(id);break;
+    case 'pay-boleta':{var pr=payRows().filter(function(x){return x.r.id===id});if(!pr.length)break;toast('Preparando la boleta…');try{await payBoletas(pr);toast('Boleta lista')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
+    case 'pay-boletas':{var pa=payRows().filter(function(x){return !x.noSal});if(!pa.length){toast('Agrega el salario de los empleados primero.',true);break}toast('Preparando las boletas…');try{await payBoletas(pa);toast('Boletas listas')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
+    case 'pay-planilla':{if(!payRows().some(function(x){return !x.noSal})){toast('Agrega el salario de los empleados primero.',true);break}toast('Preparando la planilla…');try{await payPlanilla();toast('Planilla lista')}catch(e){console.error(e);toast('No se pudo crear el PDF. Revisa tu internet e intenta de nuevo.',true)}break}
     case 'staff-open':S.staffSel=id;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
     case 'staff-back':S.staffSel=null;S.staffDel=null;S.anim=true;render();window.scrollTo(0,0);break;
     case 'staff-import':{var inp=document.createElement('input');inp.type='file';inp.accept='.json,application/json';inp.multiple=true;inp.onchange=function(){if(inp.files&&inp.files.length)importStaff(Array.prototype.slice.call(inp.files))};inp.click();break}

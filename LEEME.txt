@@ -45,3 +45,8 @@ RESERVACIONES
   Ventas, y "Cancelar reserva" decide a quién pasa el anticipo.
 - El reporte Diario muestra las reservas pendientes con lo que dejó el
   cliente, lo que resta y la fecha de retiro.
+
+PLANILLA DE PAGO
+- Personal > Planilla de pago. Elige mes y quincena (pago 15 y 30).
+- Toma a los empleados activos y su salario de "Datos de empleo".
+- Boleta PDF por empleado, todas las boletas, y planilla general en PDF.
