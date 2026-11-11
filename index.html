@@ -523,6 +523,14 @@ details[open] summary::after{transform:rotate(-135deg)}
 .lawsw button{border:0;border-radius:11px;min-height:38px;padding:0 8px;background:transparent;font-weight:700;font-size:13px;color:var(--ink2);transition:background .18s,color .18s,transform .16s var(--ease)}.lawsw button:active{transform:scale(.97)}
 .lawsw button.on{background:var(--brand);color:var(--brand-ink)}
 .lawall{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}.lawall span{font-weight:700;color:var(--ink2);font-size:13.5px}
+
+.duestrip{margin-bottom:14px}.duestrip h3{font:700 16px var(--f-d);margin-bottom:2px}
+.dueRow{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line)}.dueRow:first-of-type{border-top:0}
+.dueRow .dmain{flex:1;min-width:0;display:grid}.dueRow .dmain small{color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alertcard{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 0;padding:12px 14px;border:0;border-radius:var(--r);text-align:left;background:var(--sun-soft,#FFF1CC);color:var(--ink);box-shadow:var(--shadow);transition:transform .16s var(--ease)}.alertcard:active{transform:scale(.985)}
+.alertcard .am{flex:1;min-width:0;display:grid}.alertcard small{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.alertcard .ico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,194,46,.45);flex:none}
+@media (prefers-color-scheme:dark){.alertcard{background:#3A3216}}
+a.btn{text-decoration:none}
 </style>
 </head>
 <body>
@@ -559,6 +567,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
 <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 10h19"/></symbol>
 <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
 <symbol id="i-data" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
 </defs></svg>
 <div class="app">
@@ -806,6 +815,7 @@ function viewHome(){
     '<span class="sub">'+(r.T.n?'De '+money(r.T.inc)+' vendidos en '+plural(r.T.n,'venta','ventas'):'Aún no hay ventas en este período')+'</span>'+
     '<div class="hrow"><div><small>Ventas</small><b class="num">'+money(r.T.inc)+'</b></div><div><small>Gastos</small><b class="num">'+money(r.T.exp)+'</b></div><div><small>Unidades</small><b class="num">'+r.units+'</b></div></div>'+
     blocksHTML(segs)+legendHTML(segs)+'</section>';
+  h+=dueResHTML();
   h+='<div class="tiles t4">'+
     '<button class="tile" type="button" data-a="new-sale"><span class="ico">'+ic('cart')+'</span><b>Nueva venta</b><span>Cliente, producto y cobro</span></button>'+
     '<button class="tile sun" type="button" data-a="new-inv"><span class="ico">'+ic('box')+'</span><b>Nuevo producto</b><span>Con foto y precios</span></button>'+
@@ -1688,7 +1698,7 @@ async function resPdf(r){
     /* encabezado */
     if(logo)page.drawImage(logo,{x:M,y:PH-T-52,width:62,height:52});
     txt('Importoys El Salvador',M+72,T+4,15,true);
-    txt('Recibo de reserva',M+72,T+24,11,false,BLUE);
+    txt(dep>0?'Recibo de reserva':'Constancia de reserva',M+72,T+24,11,false,BLUE);
     txt(resNum(r),PW-M,T+2,18,true,NAVY,'r');
     txt('Fecha: '+fdate(r.date),PW-M,T+26,10,false,GRAY,'r');
     txt(label,PW-M,T+40,8,false,GRAY,'r');
@@ -1711,16 +1721,19 @@ async function resPdf(r){
     /* montos */
     var bx=M+W-240;
     txt('Total de la compra',bx,y,10,false,GRAY);txt(m2(tot),PW-M,y,10.5,true,DARK,'r');
-    txt('Anticipo recibido'+(r.payment?' ('+r.payment+')':''),bx,y+18,10,false,GRAY);txt(m2(dep),PW-M,y+18,10.5,true,DARK,'r');
+    txt((r.abonos||[]).length?'Total abonado':'Anticipo recibido'+(r.payment?' ('+r.payment+')':''),bx,y+18,10,false,GRAY);txt(m2(dep),PW-M,y+18,10.5,true,DARK,'r');
     rect(bx-8,y+36,248,30,NAVY);rect(bx-8,y+36,4,30,SUN);
     txt('SALDO PENDIENTE',bx+4,y+45,10,true,[255,255,255]);txt(m2(sal),PW-M-8,y+42,15,true,SUN,'r');
     /* izquierda: retiro y notas */
     var lx=M,ly=y,lw=bx-M-24;
     txt('Estado',lx,ly,8.5,false,GRAY);txt('Producto apartado, pendiente de retirar',lx,ly+11,9.5,true);
     if(r.pickup){txt('Fecha de retiro acordada',lx,ly+30,8.5,false,GRAY);txt(fdate(r.pickup),lx,ly+41,9.5,true)}
-    if(r.notes){wrap(r.notes,8.5,false,lw).slice(0,2).forEach(function(l,i){txt(l,lx,ly+(r.pickup?58:30)+i*10,8.5,false,GRAY)})}
-    y+=80;
-    var leg=wrap('Este comprobante acredita el anticipo recibido para apartar el producto. El saldo pendiente se cancela al momento del retiro.',8,false,W);
+    var hy=ly+(r.pickup?58:30),hist=[];
+    if((r.abonos||[]).length){var first=dep-r.abonos.reduce(function(a,b){return a+cents(b.amount)},0);if(first>0)hist.push([r.date,first,'Anticipo']);r.abonos.forEach(function(a){hist.push([a.date,cents(a.amount),'Abono'])});
+      txt('Pagos recibidos',lx,hy,8.5,false,GRAY);hist.slice(0,5).forEach(function(h,i){txt(fdate(h[0])+'  '+h[2]+'  '+m2(h[1]),lx,hy+11+i*10,8.5,true)});hy+=11+Math.min(5,hist.length)*10}
+    else if(r.notes){wrap(r.notes,8.5,false,lw).slice(0,2).forEach(function(l,i){txt(l,lx,hy+i*10,8.5,false,GRAY)})}
+    y+=Math.max(80,hy-ly+14);
+    var leg=wrap(dep>0?'Este comprobante acredita el anticipo recibido para apartar el producto. El saldo pendiente se cancela al momento del retiro.':'Este comprobante acredita que el producto queda apartado a nombre del cliente. El pago se realiza al momento del retiro.',8,false,W);
     leg.forEach(function(l,i){txt(l,M,y+i*10,8,false,GRAY)});
     /* firmas */
     var sy=y+44;line(M+10,sy,M+200,DARK,.7);line(PW-M-200,sy,PW-M-10,DARK,.7);
@@ -1944,12 +1957,54 @@ function resReportText(){
       '   Dejó '+money(cents(r.deposit))+' (en '+h+') · *Resta '+money(resSaldo(r))+'*','   Retira: '+(r.pickup?fdate(r.pickup)+(r.pickup<today()?' (vencida)':''):'sin fecha'),'')});
   L.push('Anticipos: '+money(t.dep)+' · *Saldo por cobrar: '+money(t.saldo)+'*');return L;
 }
+
+function dayDiff(iso){return Math.round((new Date(iso+'T00:00:00')-new Date(today()+'T00:00:00'))/864e5)}
+function dueLabel(r){var d=dayDiff(r.pickup);return d<0?'Vencida hace '+(-d)+(d===-1?' día':' días'):d===0?'Hoy':d===1?'Mañana':'En '+d+' días'}
+function resDue(){return resPend().filter(function(r){return r.pickup&&dayDiff(r.pickup)<=3}).sort(function(a,b){return a.pickup.localeCompare(b.pickup)})}
+function telDigits(p){return String(p||'').replace(/\D/g,'')}
+function waCust(r){var d=telDigits(r.phone);if(d.length===8)d='503'+d;
+  var m='Hola '+r.customer+', te escribimos de Importoys. Tu reserva '+resNum(r)+' ('+r.productName+(r.productModel?' '+r.productModel:'')+') '+(r.pickup?'está programada para retirar el '+fdate(r.pickup):'está lista para retirar')+'. Saldo pendiente: '+money(resSaldo(r))+'. ¡Te esperamos!';
+  return 'https://wa.me/'+d+'?text='+encodeURIComponent(m)}
+function resDueStrip(){
+  var l=resDue();if(!l.length)return '';
+  return '<section class="card pad duestrip"><h3>Para llamar o entregar</h3><p class="sub">Reservas vencidas o que se retiran en los próximos 3 días</p>'+l.slice(0,6).map(function(r){var late=dayDiff(r.pickup)<0;
+    return '<div class="dueRow"><div class="dmain"><b>'+esc(r.customer)+'</b><small>'+esc(r.productName)+' · resta '+money(resSaldo(r))+(r.called?' · llamado '+fdate(r.called):'')+'</small></div><span class="pill '+(late?'bad':'warn')+'">'+dueLabel(r)+'</span>'+
+      (r.phone?'<a class="ibtn sm" href="tel:'+telDigits(r.phone)+'" aria-label="Llamar a '+esc(r.customer)+'">'+ic('phone')+'</a><a class="ibtn sm" target="_blank" rel="noopener" href="'+waCust(r)+'" aria-label="WhatsApp a '+esc(r.customer)+'">'+ic('share')+'</a>':'')+'</div>'}).join('')+(l.length>6?'<p class="hint">Y '+(l.length-6)+' más en la lista.</p>':'')+'</section>';
+}
+function dueResHTML(){
+  var l=resDue();if(!l.length)return '';
+  return '<button type="button" class="alertcard" data-a="goto-res"><span class="ico">'+ic('calendar')+'</span><span class="am"><b>'+plural(l.length,'reserva por retirar pronto','reservas por retirar pronto')+'</b><small>'+l.slice(0,3).map(function(r){return esc(r.customer.split(' ')[0])+' · '+dueLabel(r)}).join(' · ')+'</small></span>'+ic('chev','rot')+'</button>';
+}
+async function openResAbono(id){
+  if(needDb())return;
+  var r=S.res.filter(function(x){return x.id===id})[0];if(!r)return;
+  var html='<form id="f" data-kind="resabono" novalidate>'+
+    '<div class="readout"><span>'+esc(r.customer)+'<br><small>Ya abonó '+money(cents(r.deposit))+' de '+money(resTotal(r))+'</small></span><b class="num">'+money(resSaldo(r))+'</b></div>'+
+    '<p class="hint" style="margin:-4px 0 12px">El saldo pendiente de arriba baja con el abono. El dinero queda en '+esc(r.holder)+', igual que el anticipo.</p>'+
+    '<div class="grid2"><div class="fld"><label for="f-amount">Monto del abono ($)</label><input id="f-amount" name="amount" type="number" inputmode="decimal" min="0.01" step="0.01"></div>'+
+    '<div class="fld"><label for="f-date">Fecha</label><input id="f-date" name="date" type="date" value="'+today()+'"></div></div>'+
+    '<div class="fld"><label for="f-pay">Forma de pago</label><input id="f-pay" name="payment" type="text" list="dl-pays" autocomplete="off" value="'+esc(r.payment||'Efectivo')+'"></div>'+dl('dl-pays',uniq(PAYS))+formFoot()+'</form>';
+  openSheet('Registrar abono',html,async function(fd){
+    var amt=num(fd.get('amount')),date=fd.get('date');
+    if(!(amt>0))return 'Escribe el monto del abono.';
+    if(cents(amt)>resSaldo(r))return 'El abono no puede ser mayor al saldo pendiente ('+money(resSaldo(r))+').';
+    if(!date)return 'Elige la fecha.';
+    var abonos=(r.abonos||[]).concat([{date:date,amount:amt,payment:String(fd.get('payment')||'').trim()}]);
+    var data=noId(Object.assign({},r,{deposit:(Number(r.deposit)||0)+amt,abonos:abonos}));
+    try{await retry(function(){return S.db.doc('reservations/'+r.id).set(data)})}catch(e){return errMsg(e)}
+    toast('Abono registrado');return null;
+  });
+}
+async function resToggleCalled(id){
+  var r=S.res.filter(function(x){return x.id===id})[0];if(!r)return;
+  try{await retry(function(){return S.db.doc('reservations/'+r.id).set(noId(Object.assign({},r,{called:r.called===today()?'':today()})))})}catch(e){toast(errMsg(e),true)}
+}
 function viewRes(){
   var q=S.rq.trim().toLowerCase(),pend=resPend(),dep={Importoys:0,Importshop:0,Bodega:0},saldo=0;
   pend.forEach(function(r){dep[HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega']+=cents(r.deposit);saldo+=resSaldo(r)});
   var h=ventasTabs()+'<div class="sec-head"><div><h2>Reservaciones</h2><p class="sub">'+plural(pend.length,'pendiente de retirar','pendientes de retirar')+' · saldo por cobrar '+money(saldo)+'</p></div><button class="btn" type="button" data-a="new-res">'+ic('plus')+'Nueva reserva</button></div>';
   if(!S.res.length)return h+emptyBox('calendar','Aún no hay reservas','Cuando un cliente aparte un producto con un anticipo, regístralo aquí. El producto queda apartado del inventario y puedes darle su recibo.','<button class="btn" data-a="new-res">'+ic('plus')+'Registrar la primera</button>');
-  h+='<div class="money3">'+HOLDERS.map(function(x){return '<div class="mcell h-'+x+'"><small><i class="dot"></i>Anticipos en '+x+'</small><b class="num">'+money(dep[x])+'</b></div>'}).join('')+'</div><p class="hint" style="margin:6px 2px 12px">Los anticipos de reservas pendientes todavía no cuentan como venta. Entran a la liquidación cuando el cliente retira.</p>';
+  h+='<div class="money3">'+HOLDERS.map(function(x){return '<div class="mcell h-'+x+'"><small><i class="dot"></i>Anticipos en '+x+'</small><b class="num">'+money(dep[x])+'</b></div>'}).join('')+'</div><p class="hint" style="margin:6px 2px 12px">Los anticipos de reservas pendientes todavía no cuentan como venta. Entran a la liquidación cuando el cliente retira.</p>'+resDueStrip();
   var cnt={pendiente:0,retirada:0,cancelada:0};S.res.forEach(function(r){cnt[r.status]=(cnt[r.status]||0)+1});
   h+='<div class="tools"><div class="search">'+ic('search')+'<input id="rq" type="search" placeholder="Buscar cliente, teléfono, producto o número" aria-label="Buscar reservas" value="'+esc(S.rq)+'" autocomplete="off"></div><div class="chips">'+
     [['pendiente','Pendientes'],['retirada','Retiradas'],['cancelada','Canceladas'],['all','Todas']].map(function(c){return '<button type="button" class="chip'+(S.rf===c[0]?' on':'')+'" data-a="rf" data-v="'+c[0]+'">'+c[1]+(c[0]==='all'?'':' <span class="num">'+(cnt[c[0]]||0)+'</span>')+'</button>'}).join('')+'</div></div>';
@@ -1962,11 +2017,11 @@ function resRow(r){
   var st=r.status,pill=st==='pendiente'?'<span class="pill warn">Pendiente de retirar</span>':st==='retirada'?'<span class="pill ok">Retirada</span>':'<span class="pill bad">Cancelada</span>';
   var h=HOLDERS.indexOf(r.holder)>=0?r.holder:'Bodega';
   var chips='<span class="mchip">'+ic('calendar')+fdate(r.date)+'</span>'+(r.phone?'<span class="mchip">'+ic('user')+esc(r.phone)+'</span>':'')+(r.pickup&&st==='pendiente'?'<span class="mchip'+(r.pickup<today()?' late':'')+'">'+ic('truck')+'Retira: '+fdate(r.pickup)+(r.pickup<today()?' · vencida':'')+'</span>':'')+'<span class="mchip">'+esc(resNum(r))+'</span>';
-  var info=st==='cancelada'?'<small>'+(r.refund?'Anticipo devuelto al cliente':'Anticipo retenido por '+esc(r.keepTo||'—'))+'</small>':'<small>Anticipo '+money(cents(r.deposit))+' · Saldo '+money(resSaldo(r))+'</small>';
+  var info=st==='cancelada'?'<small>'+(r.refund?'Anticipo devuelto al cliente':'Anticipo retenido por '+esc(r.keepTo||'—'))+'</small>':'<small>Abonado '+money(cents(r.deposit))+' · Saldo '+money(resSaldo(r))+((r.abonos||[]).length?' · '+plural((r.abonos||[]).length,'abono','abonos'):'')+'</small>';
   var acts='';
   if(S.del==='res:'+r.id)acts='<span class="acts"><button class="btn bad sm" data-a="del-yes" data-k="res" data-id="'+r.id+'">Sí, eliminar</button><button class="btn ghost sm" data-a="del-no">Cancelar</button></span>';
   else{
-    if(st==='pendiente')acts+='<button class="btn sm" type="button" data-a="res-pick" data-id="'+r.id+'">'+ic('check')+'Retirar y cobrar saldo</button>';
+    if(st==='pendiente')acts+='<button class="btn sm" type="button" data-a="res-pick" data-id="'+r.id+'">'+ic('check')+'Retirar y cobrar saldo</button>'+(resSaldo(r)>0?'<button class="btn ghost sm" type="button" data-a="res-abono" data-id="'+r.id+'">'+ic('plus')+'Abono</button>':'')+(r.phone?'<a class="btn ghost sm" href="tel:'+telDigits(r.phone)+'">'+ic('phone')+'Llamar</a><a class="btn ghost sm" target="_blank" rel="noopener" href="'+waCust(r)+'">'+ic('share')+'Avisar al cliente</a><button class="btn ghost sm'+(r.called===today()?' paid':'')+'" type="button" data-a="res-called" data-id="'+r.id+'">'+(r.called?ic('check')+'Llamado '+fdate(r.called):'Ya lo llamé')+'</button>':'');
     if(IS_PWA)acts+='<button class="btn ghost sm" type="button" data-a="res-pdf" data-id="'+r.id+'">'+ic('download')+'Recibo PDF</button>';
     acts+='<button class="btn ghost sm" type="button" data-a="res-wa" data-id="'+r.id+'">'+ic('share')+'WhatsApp</button>';
     if(st==='pendiente')acts+='<button class="btn ghost sm" type="button" data-a="res-cancel" data-id="'+r.id+'">Cancelar reserva</button>';
@@ -1988,14 +2043,14 @@ function openRes(id){
   if(r&&!prods.some(function(p){return p.id===r.productId}))opts+=opt({id:r.productId,name:r.productName,model:r.productModel,price:r.unitPrice,cost:r.unitCost},true);
   prods.forEach(function(p){opts+=opt(p,r&&r.productId===p.id)});
   var html='<form id="f" data-kind="res" novalidate'+(r?' data-rid="'+esc(r.id)+'" data-pid="'+esc(r.productId)+'"':'')+'>'+
-    '<div class="fld"><label for="f-customer">Nombre del cliente</label><input id="f-customer" name="customer" type="text" autocomplete="off" value="'+esc(s.customer)+'"></div>'+
+    '<div class="fld"><label for="f-customer">Nombre del cliente</label><input id="f-customer" name="customer" type="text" list="dl-clients" autocomplete="off" value="'+esc(s.customer)+'"></div>'+
     '<div class="grid2"><div class="fld"><label for="f-phone">Teléfono</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" value="'+esc(s.phone)+'"></div>'+
     '<div class="fld"><label for="f-dui">DUI <small>(opcional)</small></label><input id="f-dui" name="dui" type="text" inputmode="numeric" autocomplete="off" placeholder="00000000-0" value="'+esc(s.dui)+'"></div></div>'+
     '<div class="fld"><span class="lbl">Producto</span><select id="f-product" name="product" hidden>'+opts+'</select><div id="pickwrap"></div></div>'+
     '<div class="grid2"><div class="fld"><label for="f-qty">Cantidad</label><input id="f-qty" name="qty" type="number" inputmode="numeric" min="1" step="1" value="'+(parseInt(s.qty,10)||1)+'"></div>'+
     '<div class="fld"><label for="f-unit">Precio unitario ($)</label><input id="f-unit" name="unit" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(s.unitPrice)+'"></div></div>'+
     '<div class="grid2"><div class="fld"><label for="f-discount">Descuento ($)</label><input id="f-discount" name="discount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(s.discount||'')+'"></div>'+
-    '<div class="fld"><label for="f-deposit">Anticipo recibido ($)</label><input id="f-deposit" name="deposit" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(s.deposit)+'"></div></div>'+
+    '<div class="fld"><label for="f-deposit">Anticipo recibido ($) <small>(si dejó)</small></label><input id="f-deposit" name="deposit" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(s.deposit)+'"></div></div>'+
     '<div class="readout"><span>Total · Saldo pendiente<br><small id="f-sub"></small></span><b class="num" id="f-total">$0.00</b></div>'+
     '<div class="fld"><span class="lbl">Quién recibió el anticipo</span><div class="segs" role="radiogroup">'+HOLDERS.map(function(h){return '<label class="seg h-'+h+'"><input type="radio" name="holder" value="'+h+'"'+(s.holder===h?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div></div>'+
     '<div class="grid2"><div class="fld"><label for="f-date">Fecha de la reserva</label><input id="f-date" name="date" type="date" value="'+esc(s.date)+'"></div>'+
@@ -2003,7 +2058,7 @@ function openRes(id){
     '<div class="grid2"><div class="fld"><label for="f-pay">Forma de pago</label><input id="f-pay" name="payment" type="text" list="dl-pays" autocomplete="off" value="'+esc(s.payment)+'"></div>'+
     '<div class="fld"><label for="f-seller">Vendedor</label><input id="f-seller" name="seller" type="text" list="dl-sellers" autocomplete="off" value="'+esc(s.seller)+'"></div></div>'+
     '<div class="fld"><label for="f-notes">Notas <small>(opcional)</small></label><textarea id="f-notes" name="notes" rows="2">'+esc(s.notes||'')+'</textarea></div>'+
-    dl('dl-sellers',uniq(S.sales.map(function(x){return String(x.seller||'').trim()})))+dl('dl-pays',uniq(PAYS.concat(S.sales.map(function(x){return x.payment}))))+formFoot()+'</form>';
+    dl('dl-clients',uniq(S.res.map(function(x){return x.customer}).concat(S.sales.map(function(x){return x.customer}))))+dl('dl-sellers',uniq(S.sales.map(function(x){return String(x.seller||'').trim()})))+dl('dl-pays',uniq(PAYS.concat(S.sales.map(function(x){return x.payment}))))+formFoot()+'</form>';
   openSheet(r?'Editar reserva':'Nueva reserva',html,function(fd){return saveRes(fd,r)});
   refreshPick();updateReadout();
 }
@@ -2016,7 +2071,7 @@ async function saveRes(fd,r){
   if(disc<0)return 'El descuento no puede ser negativo.';
   var total=cents(unit)*qty-cents(disc);
   if(total<=0)return 'El total debe ser mayor a cero.';
-  if(!(dep>0))return 'Escribe el anticipo que dejó el cliente.';
+  if(!(dep>=0))return 'El anticipo no puede ser negativo.';
   if(cents(dep)>total)return 'El anticipo no puede ser mayor al total.';
   if(!date)return 'Elige la fecha de la reserva.';
   if(!fd.get('pickup'))return 'Elige la fecha en que el cliente retirará el producto.';
@@ -2065,11 +2120,11 @@ function openResCancel(id){
   var r=S.res.filter(function(x){return x.id===id})[0];if(!r)return;
   var html='<form id="f" data-kind="rescancel" novalidate>'+
     '<div class="readout"><span>Anticipo de '+esc(r.customer)+'<br><small>Lo tiene '+esc(r.holder)+'</small></span><b class="num">'+money(cents(r.deposit))+'</b></div>'+
-    '<div class="fld"><span class="lbl">¿Qué pasa con el anticipo?</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="what" value="keep" checked><span>Nos lo quedamos</span></label><label class="seg"><input type="radio" name="what" value="refund"><span>Se devuelve al cliente</span></label></div></div>'+
-    '<div class="fld" id="keepbox"><span class="lbl">¿A qué empresa pasa el anticipo?</span><div class="segs" role="radiogroup">'+COMPANIES.map(function(h,i){return '<label class="seg h-'+h+'"><input type="radio" name="keepTo" value="'+h+'"'+(i===0?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div><span class="hint">Entra como ingreso de esa empresa en la liquidación. El producto vuelve a estar disponible en el inventario.</span></div>'+
+    (cents(r.deposit)===0?'<p class="hint">Esta reserva no tiene anticipo. Al cancelar, el producto vuelve al inventario.</p>':'<div class="fld"><span class="lbl">¿Qué pasa con el anticipo?</span><div class="segs" role="radiogroup"><label class="seg"><input type="radio" name="what" value="keep" checked><span>Nos lo quedamos</span></label><label class="seg"><input type="radio" name="what" value="refund"><span>Se devuelve al cliente</span></label></div></div>'+
+    '<div class="fld" id="keepbox"><span class="lbl">¿A qué empresa pasa el anticipo?</span><div class="segs" role="radiogroup">'+COMPANIES.map(function(h,i){return '<label class="seg h-'+h+'"><input type="radio" name="keepTo" value="'+h+'"'+(i===0?' checked':'')+'><span><i class="dot"></i>'+h+'</span></label>'}).join('')+'</div><span class="hint">Entra como ingreso de esa empresa en la liquidación. El producto vuelve a estar disponible en el inventario.</span></div>')+
     formFoot()+'</form>';
   openSheet('Cancelar reserva',html,async function(fd){
-    var refund=fd.get('what')==='refund';
+    var refund=cents(r.deposit)===0||fd.get('what')==='refund';
     var data=noId(Object.assign({},r,{status:'cancelada',refund:refund,keepTo:refund?'':(fd.get('keepTo')||'Importoys'),cancelDate:today()}));
     try{await retry(function(){return S.db.doc('reservations/'+r.id).set(data)})}catch(e){return errMsg(e)}
     toast('Reserva cancelada');return null;
@@ -2107,6 +2162,9 @@ document.addEventListener('click',async function(ev){
     case 'new-res':openRes();break;
     case 'edit-res':openRes(id);break;
     case 'res-pick':openResPick(id);break;
+    case 'res-abono':openResAbono(id);break;
+    case 'res-called':resToggleCalled(id);break;
+    case 'goto-res':S.tab='ventas';S.vsub='res';S.rf='pendiente';S.anim=true;render();window.scrollTo(0,0);break;
     case 'res-cancel':openResCancel(id);break;
     case 'res-wa':{var rw=S.res.filter(function(x){return x.id===id})[0];if(rw)window.open('https://wa.me/?text='+encodeURIComponent(resText(rw)),'_blank','noopener');break}
     case 'open-picker':openPicker();break;
@@ -2265,6 +2323,7 @@ document.addEventListener('input',function(ev){
   if(t.id==='q'){S.q=t.value;sched()}
   else if(t.id==='iq'){S.iq=t.value;sched()}
   else if(t.id==='rq'){S.rq=t.value;sched()}
+  else if(t.id==='f-customer'&&t.form&&t.form.dataset.kind==='res'){var nm=t.value.trim().toLowerCase(),kn=S.res.filter(function(x){return String(x.customer).toLowerCase()===nm}).sort(function(a,b){return (b.num||0)-(a.num||0)})[0];if(kn){var fp=t.form.elements.phone,fdui=t.form.elements.dui;if(fp&&!fp.value)fp.value=kn.phone||'';if(fdui&&!fdui.value)fdui.value=kn.dui||''}}
   else if(t.id==='pq')fillPicker(t.value);
   else if(t.closest&&t.closest('#f'))updateReadout();
 });
