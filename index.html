@@ -531,6 +531,11 @@ details[open] summary::after{transform:rotate(-135deg)}
 .alertcard .am{flex:1;min-width:0;display:grid}.alertcard small{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.alertcard .ico{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,194,46,.45);flex:none}
 @media (prefers-color-scheme:dark){.alertcard{background:#3A3216}}
 a.btn{text-decoration:none}
+
+.r-note{grid-column:1/-1;margin:2px 0 0;padding:8px 12px;border-radius:12px;background:var(--surface2);color:var(--ink2,var(--ink));font-size:.86rem;line-height:1.35}
+textarea{resize:vertical}
+
+.rtable td.cmt{min-width:150px;max-width:260px;white-space:normal;font-size:.84rem}
 </style>
 </head>
 <body>
@@ -689,7 +694,7 @@ function calc(key){
   var P={};HOLDERS.forEach(function(h){P[h]={name:h,inc:0,comm:0,exp:0,n:0,cost:0,list:[]}});
   var sellers={},nc=0,units=0;
   S.sales.filter(function(s){return inM(s.date)}).forEach(function(s){
-    var h=P[s.holder]||P.Bodega,v=net(s),c=cents(s.commission);
+    var h=P[s.holder]||P.Bodega,v=net(s),c=fee(s);
     var dp=cents(s.dep),dh=(dp>0&&dp<=v&&s.depHolder&&P[s.depHolder]&&s.depHolder!==s.holder)?P[s.depHolder]:null;
     if(dh){dh.inc+=dp;h.inc+=v-dp}else h.inc+=v;
     h.comm+=c;h.n++;h.list.push(s);h.cost+=costOf(s);if(!costKnown(s))nc++;units+=parseInt(s.qty,10)||0;
@@ -854,13 +859,13 @@ function monthSales(k){return S.sales.filter(function(s){return mkey(s.date)===k
 function envio(s){return (s.channel||'Sin canal')+(s.guide?' · Guía '+s.guide:'')}
 function salesTotals(list){var t={n:0,qty:0,gross:0,disc:0,comm:0,net:0,H:{Importoys:0,Importshop:0,Bodega:0},S:{}};
   list.forEach(function(s){var q=parseInt(s.qty,10)||0,h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega',sl=String(s.seller||'').trim()||'Sin vendedor';
-    t.n++;t.qty+=q;t.gross+=gross(s);t.disc+=cents(s.discount);t.comm+=cents(s.commission);t.net+=net(s);var dp=cents(s.dep);if(dp>0&&dp<=net(s)&&HOLDERS.indexOf(s.depHolder)>=0&&s.depHolder!==h){t.H[s.depHolder]+=dp;t.H[h]+=net(s)-dp}else t.H[h]+=net(s);
-    var o=t.S[sl]||(t.S[sl]={n:0,net:0,comm:0});o.n++;o.net+=net(s);o.comm+=cents(s.commission)});return t}
+    t.n++;t.qty+=q;t.gross+=gross(s);t.disc+=cents(s.discount);t.comm+=fee(s);t.net+=net(s);var dp=cents(s.dep);if(dp>0&&dp<=net(s)&&HOLDERS.indexOf(s.depHolder)>=0&&s.depHolder!==h){t.H[s.depHolder]+=dp;t.H[h]+=net(s)-dp}else t.H[h]+=net(s);
+    var o=t.S[sl]||(t.S[sl]={n:0,net:0,comm:0});o.n++;o.net+=net(s);o.comm+=fee(s)});return t}
 function salesTable(list){
   var t=salesTotals(list);
-  return '<div class="tscroll"><table class="rtable"><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">Desc.</th><th class="r">Comisión</th><th>Envío</th><th>Vendió</th><th>Dinero en</th><th class="r">Total</th></tr></thead><tbody>'+
-   list.map(function(s){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';return '<tr><td>'+fdate(s.date)+'</td><td>'+esc(s.customer)+'</td><td>'+esc(s.productName)+(s.productModel?' <small>'+esc(s.productModel)+'</small>':'')+'</td><td class="r num">'+(parseInt(s.qty,10)||0)+'</td><td class="r num">'+money(cents(s.unitPrice))+'</td><td class="r num">'+(cents(s.discount)?'−'+money(cents(s.discount)):'—')+'</td><td class="r num">'+(cents(s.commission)?money(cents(s.commission)):'—')+'</td><td>'+esc(envio(s))+'</td><td>'+esc(String(s.seller||'').trim()||'—')+'</td><td><span class="who h-'+h+'"><i class="dot"></i>'+h+'</span></td><td class="r num"><b>'+money(net(s))+'</b></td></tr>'}).join('')+
-   '</tbody><tfoot><tr><td colspan="3">Totales ('+plural(t.n,'venta','ventas')+')</td><td class="r num">'+t.qty+'</td><td></td><td class="r num">'+(t.disc?'−'+money(t.disc):'—')+'</td><td class="r num">'+money(t.comm)+'</td><td colspan="3"></td><td class="r num">'+money(t.net)+'</td></tr></tfoot></table></div>';
+  return '<div class="tscroll"><table class="rtable"><thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">Desc.</th><th class="r">Comisión</th><th>Envío</th><th>Vendió</th><th>Dinero en</th><th>Comentario</th><th class="r">Total</th></tr></thead><tbody>'+
+   list.map(function(s){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';return '<tr><td>'+fdate(s.date)+'</td><td>'+esc(s.customer)+'</td><td>'+esc(s.productName)+(s.productModel?' <small>'+esc(s.productModel)+'</small>':'')+'</td><td class="r num">'+(parseInt(s.qty,10)||0)+'</td><td class="r num">'+money(cents(s.unitPrice))+'</td><td class="r num">'+(cents(s.discount)?'−'+money(cents(s.discount)):'—')+'</td><td class="r num">'+(fee(s)?money(fee(s)):'—')+'</td><td>'+esc(envio(s))+'</td><td>'+esc(String(s.seller||'').trim()||'—')+'</td><td><span class="who h-'+h+'"><i class="dot"></i>'+h+'</span></td><td class="cmt">'+(String(s.note||'').trim()?esc(String(s.note).trim()):'—')+'</td><td class="r num"><b>'+money(net(s))+'</b></td></tr>'}).join('')+
+   '</tbody><tfoot><tr><td colspan="3">Totales ('+plural(t.n,'venta','ventas')+')</td><td class="r num">'+t.qty+'</td><td></td><td class="r num">'+(t.disc?'−'+money(t.disc):'—')+'</td><td class="r num">'+money(t.comm)+'</td><td colspan="4"></td><td class="r num">'+money(t.net)+'</td></tr></tfoot></table></div>';
 }
 function holderTotals(t){return '<div class="money3">'+HOLDERS.map(function(x){return '<div class="mcell h-'+x+'"><small><i class="dot"></i>Dinero en '+x+'</small><b class="num">'+money(t.H[x])+'</b></div>'}).join('')+'</div>'}
 function sellerTotals(t){var ks=Object.keys(t.S).sort(function(a,b){return t.S[b].net-t.S[a].net});if(!ks.length)return '';return '<dl class="kv">'+ks.map(function(n){var o=t.S[n];return '<div><dt>'+esc(n)+' <small>'+plural(o.n,'venta','ventas')+' · comisión '+money(o.comm)+'</small></dt><dd class="num">'+money(o.net)+'</dd></div>'}).join('')+'</dl>'}
@@ -883,7 +888,7 @@ function diaText(){
   var k=repMonth(),list=monthSales(k),t=salesTotals(list),L=['*Reporte de ventas · '+mlabel(k)+'*','Al '+fdate(today()),''];
   list.forEach(function(s,i){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';
     L.push((i+1)+'. '+fdate(s.date)+' · '+s.customer,'   '+s.productName+(s.productModel?' ('+s.productModel+')':'')+' × '+(parseInt(s.qty,10)||0)+' a '+money(cents(s.unitPrice)),
-      '   Desc. '+money(cents(s.discount))+' · Comisión '+money(cents(s.commission)),'   Envío: '+envio(s),'   Vendió: '+(String(s.seller||'').trim()||'—')+' · Dinero en: '+h,'   *Total '+money(net(s))+'*','')});
+      '   Desc. '+money(cents(s.discount))+' · Comisión '+money(cents(s.commission)),'   Envío: '+envio(s),'   Vendió: '+(String(s.seller||'').trim()||'—')+' · Dinero en: '+h+(cents(s.transport)?' · Transporte '+money(cents(s.transport)):'')+(String(s.note||'').trim()?' · Nota: '+String(s.note).trim():''),'   *Total '+money(net(s))+'*','')});
   L.push('*Totales*','Ventas: '+t.n+' · Unidades: '+t.qty,'Descuentos: '+money(t.disc)+' · Comisiones: '+money(t.comm),'*Total vendido: '+money(t.net)+'*','','Dinero en Importoys: '+money(t.H.Importoys),'Dinero en Importshop: '+money(t.H.Importshop),'Dinero en Bodega: '+money(t.H.Bodega));
   resReportText().forEach(function(x){L.push(x)});
   return L.join('\n');
@@ -914,7 +919,7 @@ function cierreText(){
   if(r.ded)L.push('Comisiones: −'+money(r.T.comm));
   L.push('Gastos: −'+money(r.T.exp),'Ganancia a repartir: '+money(r.profit));
   L.push('','*Ventas ('+list.length+')*');
-  list.forEach(function(s,i){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';L.push((i+1)+'. '+fdate(s.date)+' · '+s.customer+' · '+s.productName+' × '+(parseInt(s.qty,10)||0)+' · desc. '+money(cents(s.discount))+' · com. '+money(cents(s.commission))+' · '+envio(s)+' · '+(String(s.seller||'').trim()||'—')+' · dinero en '+h+' · '+money(net(s)))});
+  list.forEach(function(s,i){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';L.push((i+1)+'. '+fdate(s.date)+' · '+s.customer+' · '+s.productName+' × '+(parseInt(s.qty,10)||0)+' · desc. '+money(cents(s.discount))+' · com. '+money(fee(s))+' · '+envio(s)+' · '+(String(s.seller||'').trim()||'—')+' · dinero en '+h+' · '+money(net(s)))});
   L.push('','*Gastos ('+ex.length+')*');
   ex.forEach(function(e,i){L.push((i+1)+'. '+fdate(e.date)+' · '+e.description+' · '+(e.who||'Importoys')+' · '+money(cents(e.amount)))});
   L.push('Total de gastos: '+money(r.T.exp),'Gastó Importoys: '+money(P.Importoys.exp),'Gastó Importshop: '+money(P.Importshop.exp),'','*Dinero de cada uno*');
@@ -953,9 +958,10 @@ function actsHTML(kind,id){
   if(S.del===key)return '<span class="acts"><button class="btn bad sm" data-a="del-yes" data-k="'+kind+'" data-id="'+id+'">Sí, eliminar</button><button class="btn ghost sm" data-a="del-no">Cancelar</button></span>';
   return '<span class="acts"><button class="ibtn sm" data-a="edit-'+kind+'" data-id="'+id+'" aria-label="Editar">'+ic('edit')+'</button><button class="ibtn sm bad" data-a="ask-del" data-k="'+kind+'" data-id="'+id+'" aria-label="Eliminar">'+ic('trash')+'</button></span>';
 }
+function fee(s){return cents(s.commission)+cents(s.transport)}
 function saleRow(s){
-  var d=cents(s.discount),c=cents(s.commission);
-  var sub=[];if(d)sub.push('Desc. −'+money(d));if(c)sub.push('Com. '+money(c));
+  var d=cents(s.discount),c=cents(s.commission),tr=cents(s.transport);
+  var sub=[];if(d)sub.push('Desc. −'+money(d));if(c)sub.push('Com. '+money(c));if(tr)sub.push('Transp. '+money(tr));
   var chips='<span class="mchip">'+ic('calendar')+fdate(s.date)+'</span>'+
     '<span class="mchip">'+ic('user')+esc(String(s.seller||'').trim()||'Sin vendedor')+'</span>'+
     (s.payment?'<span class="mchip">'+ic('card')+esc(s.payment)+'</span>':'')+
@@ -964,7 +970,7 @@ function saleRow(s){
   return '<article class="row">'+thumb(photoOf(s.productId))+
     '<div class="r-main"><h3>'+esc(s.customer)+(s.doc==='CF'||s.doc==='CCF'?'<span class="tag">'+s.doc+'</span>':'')+(s.example?'<span class="tag ex">Ejemplo</span>':'')+'</h3><p>'+esc(s.productName)+(s.productModel?' · '+esc(s.productModel):'')+' × '+(parseInt(s.qty,10)||0)+'</p></div>'+
     '<div class="r-amt num">'+money(net(s))+(sub.length?'<small>'+sub.join(' · ')+'</small>':'')+'</div>'+
-    '<div class="r-meta">'+chips+'</div>'+
+    '<div class="r-meta">'+chips+'</div>'+(String(s.note||'').trim()?'<p class="r-note">'+esc(s.note)+'</p>':'')+
     '<div class="r-foot"><label class="holder h-'+esc(s.holder)+'"><span>Dinero en</span><select data-a="holder" data-id="'+s.id+'" aria-label="Quién tiene el dinero de la venta de '+esc(s.customer)+'">'+holderOptions(s.holder)+'</select></label>'+actsHTML('sale',s.id)+'</div>'+
   '</article>';
 }
@@ -1217,7 +1223,7 @@ function viewLiq(){
     (r.ded?'<div><dt>Comisiones</dt><dd class="num">−'+money(r.T.comm)+'</dd></div>':'')+
     '<div><dt>Gastos de las dos empresas</dt><dd class="num">−'+money(r.T.exp)+'</dd></div>'+
     '<div class="strong"><dt>Ganancia a repartir</dt><dd class="num">'+money(r.profit)+'</dd></div></dl>'+
-    '<label class="switch"><span>Descontar comisiones de la ganancia<small>Se toma la comisión de quien tiene el dinero de esa venta. Si ya las pagan aparte, desmárcalo.</small></span><input type="checkbox" id="ded" data-a="ded"'+(r.ded?' checked':'')+'><i></i></label></section>';
+    '<label class="switch"><span>Descontar comisiones y transporte de la ganancia<small>Se toma la comisión y el pago de transporte de quien tiene el dinero de esa venta. Si ya las pagan aparte, desmárcalo.</small></span><input type="checkbox" id="ded" data-a="ded"'+(r.ded?' checked':'')+'><i></i></label></section>';
   return h;
 }
 
@@ -1279,6 +1285,8 @@ function openSale(id){
     '<div class="fld"><label for="f-customer">Nombre del cliente</label><input id="f-customer" name="customer" type="text" autocomplete="off" value="'+esc(s.customer)+'"></div>'+
     '<div class="grid2"><div class="fld"><label for="f-discount">Descuento ($)</label><input id="f-discount" name="discount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(s.discount||'')+'"></div>'+
     '<div class="fld"><label for="f-commission">Comisión ($)</label><input id="f-commission" name="commission" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(s.commission||'')+'"></div></div>'+
+    '<div class="fld"><label for="f-transport">Pago por transporte ($) <small>(opcional)</small></label><input id="f-transport" name="transport" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(s.transport||'')+'"></div>'+
+    '<div class="fld"><label for="f-note">Comentario de la venta <small>(opcional)</small></label><textarea id="f-note" name="note" rows="2" maxlength="300" placeholder="Ej: entrega a domicilio en Soyapango">'+esc(s.note||'')+'</textarea></div>'+
     '<div class="readout"><span>Total de la venta<br><small id="f-sub"></small></span><b class="num" id="f-total">$0.00</b></div>'+
     '<div class="grid2"><div class="fld"><label for="f-seller">Vendedor</label><input id="f-seller" name="seller" type="text" list="dl-sellers" autocomplete="off" value="'+esc(s.seller)+'"></div>'+
     '<div class="fld"><label for="f-pay">Forma de pago</label><input id="f-pay" name="payment" type="text" list="dl-pays" autocomplete="off" value="'+esc(s.payment)+'"></div></div>'+
@@ -1302,19 +1310,19 @@ function updateReadout(){
 }
 async function saveSale(fd,sale){
   var customer=String(fd.get('customer')||'').trim(),date=fd.get('date'),pid=fd.get('product');
-  var qty=parseInt(fd.get('qty'),10),disc=num(fd.get('discount')),comm=num(fd.get('commission'));
+  var qty=parseInt(fd.get('qty'),10),disc=num(fd.get('discount')),comm=num(fd.get('commission')),trn=num(fd.get('transport'));
   if(!pid)return 'Elige el producto vendido.';
   if(!(qty>=1))return 'La cantidad debe ser 1 o más.';
   if(!customer)return 'Escribe el nombre del cliente.';
   if(!date)return 'Elige la fecha de la venta.';
-  if(disc<0||comm<0)return 'El descuento y la comisión no pueden ser negativos.';
+  if(disc<0||comm<0||trn<0)return 'El descuento, la comisión y el transporte no pueden ser negativos.';
   var o=$('#f-product').selectedOptions[0];
   var unit=(sale&&pid===sale.productId)?Number(sale.unitPrice):Number(o.dataset.price);
   var prod=S.inv.filter(function(p){return p.id===pid})[0];
   var unitCost=(sale&&pid===sale.productId&&sale.unitCost!=null)?Number(sale.unitCost):(o.dataset.cost===''?null:Number(o.dataset.cost));
   if(prod){var a=avail(prod,sale&&sale.id);if(qty>a)return 'Solo hay '+a+' disponibles de este producto.'}
   if(cents(disc)>cents(unit)*qty)return 'El descuento no puede ser mayor al total.';
-  var data={customer:customer,date:date,productId:pid,productName:o.dataset.name,productModel:o.dataset.model,unitPrice:unit,unitCost:unitCost,qty:qty,discount:disc,commission:comm,
+  var data={customer:customer,date:date,productId:pid,productName:o.dataset.name,productModel:o.dataset.model,unitPrice:unit,unitCost:unitCost,qty:qty,discount:disc,commission:comm,transport:trn,note:String(fd.get('note')||'').trim(),
     seller:String(fd.get('seller')||'').trim(),payment:String(fd.get('payment')||'').trim(),channel:fd.get('channel'),guide:String(fd.get('guide')||'').trim(),
     holder:fd.get('holder')||'Importoys',doc:fd.get('doc')||'Nada',createdAt:sale?(sale.createdAt||Date.now()):Date.now()};
   if(sale&&sale.example)data.example=true;
@@ -1416,7 +1424,7 @@ async function makePdf(kind){
   var table=function(o){
     var size=o.size||8.5,pad=5,padY=4,lh=size*1.3,cols=o.cols,rows=o.rows,foot=o.foot||[];
     var cell=function(c){return typeof c==='object'&&c!==null?c:{t:c}};
-    var nat=cols.map(function(c,i){var m=wid(c.h,size,true);rows.concat(foot).forEach(function(r){var x=cell(r[i]);m=Math.max(m,wid(x.t,size,x.b||c.b))});return m+pad*2});
+    var nat=cols.map(function(c,i){var m=wid(c.h,size,true);rows.concat(foot).forEach(function(r){var x=cell(r[i]);m=Math.max(m,wid(x.t,size,x.b||c.b))});if(c.max)m=Math.max(wid(c.h,size,true),Math.min(m,c.max));return m+pad*2});
     var tot=nat.reduce(function(a,b){return a+b},0),avail=PW-2*M,ws=nat.slice();
     if(tot>avail||o.full){var f=avail/tot;ws=nat.map(function(w){return w*f})}
     var tw=ws.reduce(function(a,b){return a+b},0);
@@ -1441,9 +1449,9 @@ async function makePdf(kind){
   var m2=function(c){return CL(money(c))};
   var k=repMonth(),r=calc(k),P=r.P,list=monthSales(k),t=salesTotals(list);
   var salesTable=function(){
-    table({full:true,cols:[{h:'Fecha'},{h:'Cliente'},{h:'Producto'},{h:'Cant.',r:1},{h:'Precio',r:1},{h:'Desc.',r:1},{h:'Comisión',r:1},{h:'Envío'},{h:'Vendió'},{h:'Dinero en'},{h:'Total',r:1,b:1}],
-      rows:list.map(function(s){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';return [fdate(s.date),s.customer,s.productName+(s.productModel?' ('+s.productModel+')':''),String(parseInt(s.qty,10)||0),m2(cents(s.unitPrice)),cents(s.discount)?'-'+m2(cents(s.discount)):'-',cents(s.commission)?m2(cents(s.commission)):'-',envio(s),String(s.seller||'').trim()||'-',{t:h,c:HCOL[h],b:1},m2(net(s))]}),
-      foot:[['Totales ('+t.n+' ventas)','','',String(t.qty),'',t.disc?'-'+m2(t.disc):'-',m2(t.comm),'','','',m2(t.net)]]});
+    table({full:true,cols:[{h:'Fecha'},{h:'Cliente'},{h:'Producto',max:120},{h:'Cant.',r:1},{h:'Precio',r:1},{h:'Desc.',r:1},{h:'Comisión',r:1},{h:'Envío',max:70},{h:'Vendió'},{h:'Dinero en'},{h:'Comentario',max:120},{h:'Total',r:1,b:1}],
+      rows:list.map(function(s){var h=HOLDERS.indexOf(s.holder)>=0?s.holder:'Bodega';return [fdate(s.date),s.customer,s.productName+(s.productModel?' ('+s.productModel+')':''),String(parseInt(s.qty,10)||0),m2(cents(s.unitPrice)),cents(s.discount)?'-'+m2(cents(s.discount)):'-',fee(s)?m2(fee(s)):'-',envio(s),String(s.seller||'').trim()||'-',{t:h,c:HCOL[h],b:1},CL(String(s.note||'').trim())||'-',m2(net(s))]}),
+      foot:[['Totales ('+t.n+' ventas)','','',String(t.qty),'',t.disc?'-'+m2(t.disc):'-',m2(t.comm),'','','','',m2(t.net)]]});
   };
   if(kind==='top'){
     var tr=topProducts(list),tq=tr.reduce(function(a,r){return a+r.qty},0);
