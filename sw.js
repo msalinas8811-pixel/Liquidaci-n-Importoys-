@@ -1,5 +1,5 @@
-const V='ventas-v26';
-const CORE=['./','index.html','manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/apple-touch-icon-v2.png'];
+const V='ventas-v27';
+const CORE=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V&&k!=='fonts-v1').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
